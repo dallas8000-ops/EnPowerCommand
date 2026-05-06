@@ -64,6 +64,7 @@ export function LeadEditorPage() {
     stage: 'new',
   })
   const [lastContactLocal, setLastContactLocal] = useState('')
+  const [nextActionLocal, setNextActionLocal] = useState('')
   const [saving, setSaving] = useState(false)
   const [outreach, setOutreach] = useState<OutreachResult | null>(null)
   const [loadingAi, setLoadingAi] = useState(false)
@@ -83,6 +84,7 @@ export function LeadEditorPage() {
     if (id === 'new') {
       setLead({ ...emptyLeadForm })
       setLastContactLocal('')
+      setNextActionLocal('')
       setActivities([])
       setOutreach(null)
       setBanner(null)
@@ -106,6 +108,7 @@ export function LeadEditorPage() {
           notes: r.lead.notes ?? '',
         })
         setLastContactLocal(toLocalDatetimeValue(r.lead.last_contact_at))
+        setNextActionLocal(toLocalDatetimeValue(r.lead.next_action_at))
       } else {
         setBanner('Lead not found')
       }
@@ -153,6 +156,7 @@ export function LeadEditorPage() {
             notes: r.lead.notes ?? '',
           })
           setLastContactLocal(toLocalDatetimeValue(r.lead.last_contact_at))
+          setNextActionLocal(toLocalDatetimeValue(r.lead.next_action_at))
           navigate(`/leads/${r.lead.id}`, { replace: true })
         } else setBanner(r.message ?? 'Could not create lead')
       } else if (id) {
@@ -160,6 +164,10 @@ export function LeadEditorPage() {
           lastContactLocal.trim() === ''
             ? null
             : new Date(lastContactLocal).toISOString()
+        const nextIso =
+          nextActionLocal.trim() === ''
+            ? null
+            : new Date(nextActionLocal).toISOString()
         const r = await patchLead(id, {
           company: lead.company,
           contact_name: lead.contact_name || null,
@@ -167,6 +175,7 @@ export function LeadEditorPage() {
           url: lead.url || null,
           notes: lead.notes || null,
           stage: lead.stage,
+          next_action_at: nextIso,
           last_contact_at: lastIso,
         })
         if (r.lead) {
@@ -178,6 +187,7 @@ export function LeadEditorPage() {
             notes: r.lead.notes ?? '',
           })
           setLastContactLocal(toLocalDatetimeValue(r.lead.last_contact_at))
+          setNextActionLocal(toLocalDatetimeValue(r.lead.next_action_at))
         } else setBanner('Could not save')
       }
     } finally {
@@ -261,6 +271,38 @@ export function LeadEditorPage() {
     }
   }
 
+  function toLocalDateOffset(days: number): string {
+    const d = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  function buildFollowUpTemplate() {
+    const who = (lead.contact_name ?? '').trim() || 'there'
+    const company = (lead.company ?? '').trim() || 'your team'
+    return `Hi ${who}, following up on my application for ${company}. Happy to share any additional details if helpful.`
+  }
+
+  async function onScheduleFollowUp() {
+    if (!id || isNew) return
+    const local = toLocalDateOffset(7)
+    const nextIso = new Date(local).toISOString()
+    setNextActionLocal(local)
+    setBanner(null)
+    try {
+      await patchLead(id, { next_action_at: nextIso })
+      await postActivity(id, {
+        kind: 'follow_up',
+        note: `Follow-up scheduled: ${new Date(nextIso).toLocaleString()}. Template: ${buildFollowUpTemplate()}`,
+      })
+      await refreshActivities()
+      setQuickApplyState('Follow-up reminder scheduled for 7 days.')
+      globalThis.setTimeout(() => setQuickApplyState(null), 3000)
+    } catch {
+      setBanner('Could not schedule follow-up')
+    }
+  }
+
   return (
     <div className="page stretch">
       <header className="page-head">
@@ -329,6 +371,16 @@ export function LeadEditorPage() {
         </label>
         {!isNew && (
           <label>
+            Next action reminder
+            <input
+              type="datetime-local"
+              value={nextActionLocal}
+              onChange={(e) => setNextActionLocal(e.target.value)}
+            />
+          </label>
+        )}
+        {!isNew && (
+          <label>
             Last contact (local time)
             <input
               type="datetime-local"
@@ -349,6 +401,11 @@ export function LeadEditorPage() {
               disabled={quickApplyBusy}
             >
               {quickApplyBusy ? 'Applying…' : 'Applied now'}
+            </button>
+          )}
+          {!isNew && (
+            <button className="btn ghost" type="button" onClick={onScheduleFollowUp}>
+              Schedule follow-up +7d
             </button>
           )}
           <button

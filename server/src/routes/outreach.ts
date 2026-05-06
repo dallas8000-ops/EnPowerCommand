@@ -28,21 +28,24 @@ function demoDrafts(input: {
   const notes = input.notes ? `\nContext: ${input.notes}` : "";
   const resume =
     input.resume_snippet?.trim().slice(0, 400)
-      ? `\n(My background: ${input.resume_snippet.trim().slice(0, 280)}…)`
+      ? `\n${input.resume_snippet.trim().slice(0, 280)}…`
       : "";
+  const closingFit = input.resume_snippet?.trim()
+    ? "Happy to share specifics from my background (same details as in my profile summary) if there's mutual interest."
+    : "Happy to share relevant background if there's a potential fit — I won't claim specifics here without my profile on hand.";
   const subj = `Quick idea for ${input.company}'s product workflow`;
   const a = `Hi ${who}${role},
 
-I looked at ${input.company}${site} and sketched a small improvement that usually saves teams time on onboarding and follow-ups.${notes}${resume}
+I'm reaching out about ${input.company}${site}.${notes}${resume}
 
-If you're open to it, I can send a 2-minute Loom walking through it — no obligation.
+If you're open to it, I can send a short walkthrough — no obligation.
 
 Best`;
   const b = `Hi ${who},
 
-Noticed ${input.company} — I build React + API tooling for small teams (staging, CI, clean handoff).${notes}${resume}
+Noticed ${input.company}${role}.${notes}
 
-Happy to do a free 20-min discovery if there's a fit.
+${closingFit}
 
 Cheers`;
   return {
@@ -52,10 +55,11 @@ Cheers`;
       { label: "Direct", body: b },
       {
         label: "Follow-up (3 days)",
-        body: `Hi ${who}, bumping this in case it got buried. Still happy to share the short walkthrough if useful.`,
+        body: `Hi ${who}, bumping this in case it got buried. Still happy to continue the conversation if useful.`,
       },
     ],
-    disclaimer: "Demo mode: set OPENAI_API_KEY for model-generated drafts.",
+    disclaimer:
+      "Demo mode: templates avoid invented credentials. Set OPENAI_API_KEY for model drafts still bounded by your saved resume on the server.",
   };
 }
 
@@ -71,10 +75,11 @@ export function registerOutreachRoutes(app: Express): void {
     let role: string | null | undefined = parsed.data.role;
     let url: string | null | undefined = parsed.data.url;
     let notes: string | null | undefined = parsed.data.notes;
-    const resumeContext = parsed.data.resume_context?.trim();
+    let resumeContext = (parsed.data.resume_context ?? "").trim();
+
+    const pool = getPool();
 
     if (parsed.data.lead_id) {
-      const pool = getPool();
       if (!pool) {
         return res.status(503).json({ error: "Database not configured" });
       }
@@ -95,6 +100,18 @@ export function registerOutreachRoutes(app: Express): void {
       return res.status(400).json({ error: "company is required (or pass lead_id)" });
     }
 
+    if (!resumeContext && pool) {
+      try {
+        const pr = await pool.query<{ resume_text: string }>(
+          `SELECT resume_text FROM user_profile WHERE id = 1 LIMIT 1`
+        );
+        const stored = pr.rows[0]?.resume_text;
+        if (typeof stored === "string" && stored.trim()) resumeContext = stored.trim();
+      } catch {
+        /* ignore profile read errors */
+      }
+    }
+
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return res.json(
@@ -104,7 +121,7 @@ export function registerOutreachRoutes(app: Express): void {
           role,
           url,
           notes,
-          resume_snippet: resumeContext ?? null,
+          resume_snippet: resumeContext || null,
         })
       );
     }
@@ -112,11 +129,19 @@ export function registerOutreachRoutes(app: Express): void {
     const client = new OpenAI({ apiKey });
     const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
-    const system = `You help a freelance full-stack developer write short, human outreach.
-Rules: no spam, no fake claims, no "I saw your website" fluff without substance.
-Use resume_context only to choose relevant proof points — do not invent employers or credentials.
+    const system = `You draft short, human outreach emails for a freelancer contacting a prospect company.
+
+Ground truth for THE CANDIDATE (the sender) is ONLY the field resume_context when it is non-empty.
+- Every skill, employer, title, degree, certification, stack, metric, project name, or accomplishment mentioned about the sender MUST appear in resume_context (or be generic wording that asserts nothing factual, e.g. "happy to share relevant experience").
+- Do NOT infer the sender's technologies or achievements from the job posting, company name, or notes unless the same facts appear verbatim or clearly paraphrasable from resume_context.
+- Do NOT invent numbers, clients, job titles, dates, or tools.
+- If resume_context is null or empty: write a neutral message — show interest in the role/company using company, role, url, notes only; do NOT describe the sender's qualifications beyond offering to share background.
+- Do NOT claim "I saw your site" or deep product knowledge unless notes/url give concrete hooks you reference honestly.
+
+Job posting / lead fields (company, role, url, notes, contact_name) describe THE PROSPECT — you may reference those freely.
+
 Output strict JSON with keys: subject_lines (array of 3 strings), drafts (array of 3 objects with label and body strings).
-Tone: professional, concise, specific when notes/url allow.`;
+Tone: professional, concise, no hype, no exaggeration.`;
 
     const user = JSON.stringify({
       company,
@@ -124,13 +149,16 @@ Tone: professional, concise, specific when notes/url allow.`;
       role,
       url,
       notes,
-      resume_context: resumeContext?.slice(0, 8000) ?? null,
+      resume_context:
+        resumeContext.length > 0 ? resumeContext.slice(0, 8000) : null,
+      instruction:
+        "Only attribute qualifications to the sender that are supported by resume_context; otherwise stay generic.",
     });
 
     try {
       const completion = await client.chat.completions.create({
         model,
-        temperature: 0.7,
+        temperature: 0.35,
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
@@ -146,6 +174,8 @@ Tone: professional, concise, specific when notes/url allow.`;
         subject_lines: obj.subject_lines ?? [],
         drafts: obj.drafts ?? [],
         model,
+        disclaimer:
+          "Verify every claim about your background against Profile before sending — drafts must match your resume only.",
       });
     } catch (e) {
       console.error(e);
@@ -157,7 +187,7 @@ Tone: professional, concise, specific when notes/url allow.`;
           role,
           url,
           notes,
-          resume_snippet: resumeContext ?? null,
+          resume_snippet: resumeContext || null,
         }),
       });
     }

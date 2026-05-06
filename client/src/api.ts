@@ -56,9 +56,33 @@ export type Health = {
   auth_required?: boolean
 }
 
+export type ConversionBucket = {
+  label: string
+  applied_count: number
+  interview_count: number
+  conversion_rate: number
+}
+
+export type WeeklyAnalytics = {
+  window_days: number
+  summary: {
+    applied_count: number
+    interview_count: number
+    conversion_rate: number
+  }
+  by_role: ConversionBucket[]
+  by_source: ConversionBucket[]
+}
+
 export async function getHealth(): Promise<Health> {
   const res = await fetch(apiUrl('/api/health'))
   return parseJson(res) as Promise<Health>
+}
+
+export async function getWeeklyAnalytics(): Promise<WeeklyAnalytics> {
+  const res = await apiFetch('/api/analytics/weekly')
+  const data = await parseJson(res)
+  return data as WeeklyAnalytics
 }
 
 export async function login(

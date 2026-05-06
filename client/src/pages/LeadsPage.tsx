@@ -13,12 +13,27 @@ export function LeadsPage() {
   const [showReminder, setShowReminder] = useState(false)
   const [reminderText, setReminderText] = useState('')
   const [exportBusy, setExportBusy] = useState(false)
+  const [dueReminders, setDueReminders] = useState<Lead[]>([])
 
   useEffect(() => {
     listLeads().then((r) => {
       const msg = [r.error, r.hint].filter(Boolean).join(' — ')
       setError(msg || null)
-      setLeads(r.leads ?? [])
+      const all = r.leads ?? []
+      setLeads(all)
+      const now = Date.now()
+      setDueReminders(
+        all
+          .filter((l) => {
+            if (!l.next_action_at) return false
+            const t = new Date(l.next_action_at).getTime()
+            return !Number.isNaN(t) && t <= now
+          })
+          .sort(
+            (a, b) =>
+              new Date(a.next_action_at ?? 0).getTime() - new Date(b.next_action_at ?? 0).getTime()
+          )
+      )
     })
     const now = Date.now()
     const nextAt = Number(localStorage.getItem(REMINDER_NEXT_KEY) || 0)
@@ -52,6 +67,14 @@ export function LeadsPage() {
     } finally {
       setExportBusy(false)
     }
+  }
+
+  async function copyFollowUpTemplate(lead: Lead) {
+    const who = (lead.contact_name ?? '').trim() || 'there'
+    const role = (lead.role ?? '').trim()
+    const roleLine = role ? ` for the ${role} role` : ''
+    const text = `Hi ${who}, following up on my application${roleLine} at ${lead.company}. Happy to share any additional details if helpful.`
+    await navigator.clipboard.writeText(text)
   }
 
   return (
@@ -95,6 +118,35 @@ export function LeadsPage() {
           </div>
         </div>
       )}
+      {dueReminders.length > 0 && (
+        <div className="banner followup-reminder">
+          <strong>Follow-up reminders due now: {dueReminders.length}</strong>
+          <ul className="followup-list">
+            {dueReminders.slice(0, 6).map((lead) => (
+              <li key={lead.id}>
+                <span>
+                  <strong>{lead.company}</strong>{' '}
+                  <span className="muted small">
+                    {lead.next_action_at ? new Date(lead.next_action_at).toLocaleString() : ''}
+                  </span>
+                </span>
+                <span className="actions-inline">
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={() => copyFollowUpTemplate(lead)}
+                  >
+                    Copy follow-up
+                  </button>
+                  <Link className="link" to={`/leads/${lead.id}`}>
+                    Open
+                  </Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {leads.length === 0 && !error ? (
         <p className="muted">
@@ -107,6 +159,7 @@ export function LeadsPage() {
               <th>Company</th>
               <th>Contact</th>
               <th>Stage</th>
+              <th>Next action</th>
               <th>Last contact</th>
               <th></th>
             </tr>
@@ -118,6 +171,11 @@ export function LeadsPage() {
                 <td>{l.contact_name || '—'}</td>
                 <td>
                   <span className="pill">{l.stage}</span>
+                </td>
+                <td className="muted small">
+                  {l.next_action_at
+                    ? new Date(l.next_action_at).toLocaleDateString()
+                    : '—'}
                 </td>
                 <td className="muted small">
                   {l.last_contact_at

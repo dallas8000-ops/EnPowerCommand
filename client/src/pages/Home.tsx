@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getHealth, listLeads, type Health, type Lead } from '../api'
+import {
+  getHealth,
+  getWeeklyAnalytics,
+  listLeads,
+  type ConversionBucket,
+  type Health,
+  type Lead,
+} from '../api'
 
 type StageCount = { stage: string; count: number }
 
@@ -16,6 +23,13 @@ export function Home() {
   const [health, setHealth] = useState<Health | null>(null)
   const [stageCounts, setStageCounts] = useState<StageCount[]>([])
   const [weeklyTotal, setWeeklyTotal] = useState(0)
+  const [conversionSummary, setConversionSummary] = useState<{
+    applied_count: number
+    interview_count: number
+    conversion_rate: number
+  } | null>(null)
+  const [byRole, setByRole] = useState<ConversionBucket[]>([])
+  const [bySource, setBySource] = useState<ConversionBucket[]>([])
   let weeklyLabel = 'No leads touched in the last 7 days yet.'
   if (weeklyTotal > 0) {
     const suffix = weeklyTotal === 1 ? '' : 's'
@@ -44,6 +58,17 @@ export function Home() {
       .catch(() => {
         setWeeklyTotal(0)
         setStageCounts([])
+      })
+    getWeeklyAnalytics()
+      .then((r) => {
+        setConversionSummary(r.summary)
+        setByRole(r.by_role ?? [])
+        setBySource(r.by_source ?? [])
+      })
+      .catch(() => {
+        setConversionSummary(null)
+        setByRole([])
+        setBySource([])
       })
   }, [])
 
@@ -87,6 +112,58 @@ export function Home() {
               </span>
             ))}
           </div>
+        )}
+      </section>
+      <section className="weekly-stage-card">
+        <h2>Weekly conversion (applied → interview)</h2>
+        {conversionSummary ? (
+          <>
+            <p className="muted small">
+              Applied: <strong>{conversionSummary.applied_count}</strong> · Interview:{' '}
+              <strong>{conversionSummary.interview_count}</strong> · Conversion:{' '}
+              <strong>{Math.round(conversionSummary.conversion_rate * 100)}%</strong>
+            </p>
+            <div className="analytics-grid">
+              <div>
+                <h3>By role</h3>
+                <ul className="analytics-list">
+                  {byRole.length === 0 ? (
+                    <li className="muted small">No applied/interview activity this week.</li>
+                  ) : (
+                    byRole.slice(0, 6).map((x) => (
+                      <li key={x.label}>
+                        <span>{x.label}</span>
+                        <span className="muted small">
+                          {x.interview_count}/{x.applied_count} (
+                          {Math.round(x.conversion_rate * 100)}%)
+                        </span>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+              <div>
+                <h3>By source</h3>
+                <ul className="analytics-list">
+                  {bySource.length === 0 ? (
+                    <li className="muted small">No source trends yet this week.</li>
+                  ) : (
+                    bySource.slice(0, 6).map((x) => (
+                      <li key={x.label}>
+                        <span>{x.label}</span>
+                        <span className="muted small">
+                          {x.interview_count}/{x.applied_count} (
+                          {Math.round(x.conversion_rate * 100)}%)
+                        </span>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="muted small">Weekly conversion will appear once analytics data is available.</p>
         )}
       </section>
       <p className="hint">
