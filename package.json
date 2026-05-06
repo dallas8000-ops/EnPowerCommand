@@ -1,0 +1,16 @@
+{
+  "name": "enpower-command",
+  "private": true,
+  "description": "Freelance command center — leads + AI-assisted outreach (week-one slice)",
+  "scripts": {
+    "dev": "concurrently -n client,api -c cyan,magenta \"npm run dev --prefix client\" \"npm run dev --prefix server\"",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "db:up": "docker compose up -d",
+    "db:init": "npm run db:init --prefix server",
+    "install:all": "npm install && npm install --prefix client && npm install --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

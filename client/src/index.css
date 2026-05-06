@@ -1,0 +1,43 @@
+:root {
+  --text-h: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --bg: #09090b;
+  --surface: #18181b;
+  --border: #27272a;
+  --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  font-family: var(--sans);
+  line-height: 1.5;
+  color: var(--text-muted);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text-h);
+  margin: 0 0 0.5rem;
+}
+
+@media (min-width: 640px) {
+  h1 {
+    font-size: 2rem;
+  }
+}

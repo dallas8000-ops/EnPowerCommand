@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: enpower
+      POSTGRES_PASSWORD: enpower
+      POSTGRES_DB: enpower
+    volumes:
+      - enpower_pg:/var/lib/postgresql/data
+
+volumes:
+  enpower_pg:
