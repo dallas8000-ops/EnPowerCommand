@@ -6,6 +6,15 @@ import pg from "pg";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function shouldUseSsl(url: string): boolean {
+  return (
+    /sslmode=require/i.test(url) ||
+    process.env.PGSSLMODE === "require" ||
+    process.env.DB_SSL === "true" ||
+    Boolean(process.env.RENDER)
+  );
+}
+
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) {
@@ -16,7 +25,10 @@ async function main() {
   const schemaPath = join(__dirname, "..", "sql", "schema.sql");
   const sql = readFileSync(schemaPath, "utf8");
 
-  const client = new pg.Client({ connectionString: url });
+  const client = new pg.Client({
+    connectionString: url,
+    ssl: shouldUseSsl(url) ? { rejectUnauthorized: false } : undefined,
+  });
   await client.connect();
   try {
     await client.query(sql);
