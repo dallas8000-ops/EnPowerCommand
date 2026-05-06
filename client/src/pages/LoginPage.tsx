@@ -20,14 +20,19 @@ export function LoginPage() {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const r = await login(password)
-    setBusy(false)
-    if (r.token) {
-      setToken(r.token)
-      navigate('/', { replace: true })
-      return
+    try {
+      const r = await login(password)
+      if (r.token) {
+        setToken(r.token)
+        navigate('/', { replace: true })
+        return
+      }
+      setError(r.error ?? 'Login failed')
+    } catch {
+      setError('Cannot reach API. Check VITE_API_URL, CORS_ORIGIN, and API deploy status.')
+    } finally {
+      setBusy(false)
     }
-    setError(r.error ?? 'Login failed')
   }
 
   return (
