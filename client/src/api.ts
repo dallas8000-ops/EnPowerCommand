@@ -64,13 +64,42 @@ export async function getLead(id: string): Promise<{ lead?: Lead; error?: string
   return data as { lead: Lead }
 }
 
-export async function createLead(body: Partial<Lead> & { company: string }) {
-  const res = await fetch(apiUrl('/api/leads'), {
-    method: 'POST',
-    headers: jsonHeaders,
-    body: JSON.stringify(body),
-  })
-  return parseJson(res) as Promise<{ lead?: Lead; error?: unknown }>
+function describeSaveFailure(status: number, data: Record<string, unknown>): string {
+  const hint = typeof data.hint === 'string' ? data.hint : ''
+  const err = data.error
+  if (typeof err === 'string') return hint ? `${err} — ${hint}` : err
+  if (status === 0 || status >= 500)
+    return hint || 'Server error — check API logs and DATABASE_URL.'
+  if (status === 503)
+    return hint || 'Database not configured — set DATABASE_URL and run db:init on the API.'
+  return hint || `Could not save (${status}).`
+}
+
+export async function createLead(body: Partial<Lead> & { company: string }): Promise<{
+  lead?: Lead
+  status: number
+  message?: string
+}> {
+  try {
+    const res = await fetch(apiUrl('/api/leads'), {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify(body),
+    })
+    const data = (await parseJson(res)) as Record<string, unknown>
+    const lead = data.lead as Lead | undefined
+    if (res.ok && lead?.id) return { lead, status: res.status }
+    return {
+      status: res.status,
+      message: describeSaveFailure(res.status, data),
+    }
+  } catch {
+    return {
+      status: 0,
+      message:
+        'Cannot reach API — run `npm run dev` from repo root (or `npm run dev:server`) with Postgres / DATABASE_URL.',
+    }
+  }
 }
 
 export async function patchLead(id: string, body: Partial<Lead>) {

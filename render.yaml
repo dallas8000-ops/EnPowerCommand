@@ -32,11 +32,10 @@ services:
       - key: OPENAI_MODEL
         value: gpt-4o-mini
 
+  # Static sites on Render do not support `region` (see Blueprint validation).
   - type: web
     name: enpower-command-web
     runtime: static
-    region: ohio
-    plan: free
     rootDir: .
     buildCommand: cd client && npm ci && npm run build
     staticPublishPath: client/dist

@@ -63,7 +63,7 @@ export function LeadEditorPage() {
           stage: lead.stage ?? 'new',
         })
         if (r.lead) navigate(`/leads/${r.lead.id}`, { replace: true })
-        else setBanner('Could not create lead')
+        else setBanner(r.message ?? 'Could not create lead')
       } else if (id) {
         const r = await patchLead(id, {
           company: lead.company,
