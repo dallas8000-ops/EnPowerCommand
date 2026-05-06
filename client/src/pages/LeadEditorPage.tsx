@@ -25,6 +25,15 @@ const activityKindOptions = [
   { value: 'other', label: 'Other' },
 ]
 
+const emptyLeadForm: Partial<Lead> = {
+  company: '',
+  contact_name: '',
+  role: '',
+  url: '',
+  notes: '',
+  stage: 'new',
+}
+
 function toLocalDatetimeValue(iso: string | null | undefined): string {
   if (!iso) return ''
   const d = new Date(iso)
@@ -68,8 +77,26 @@ export function LeadEditorPage() {
   const [quickApplyState, setQuickApplyState] = useState<string | null>(null)
 
   useEffect(() => {
-    if (isNew || !id) return
+    if (!id) return
+
+    // Same route component instance is reused between /leads/:uuid and /leads/new — reset when adding new.
+    if (id === 'new') {
+      setLead({ ...emptyLeadForm })
+      setLastContactLocal('')
+      setActivities([])
+      setOutreach(null)
+      setBanner(null)
+      setActNote('')
+      setActKind('note')
+      setCopyState(null)
+      setQuickApplyState(null)
+      return
+    }
+
+    let cancelled = false
+    setBanner(null)
     getLead(id).then((r) => {
+      if (cancelled) return
       if (r.lead) {
         setLead({
           ...r.lead,
@@ -83,8 +110,14 @@ export function LeadEditorPage() {
         setBanner('Lead not found')
       }
     })
-    listActivities(id).then((r) => setActivities(r.activities ?? []))
-  }, [id, isNew])
+    listActivities(id).then((r) => {
+      if (cancelled) return
+      setActivities(r.activities ?? [])
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
 
   async function refreshActivities() {
     if (!id || isNew) return
@@ -111,8 +144,17 @@ export function LeadEditorPage() {
           notes: lead.notes || null,
           stage: lead.stage ?? 'new',
         })
-        if (r.lead) navigate(`/leads/${r.lead.id}`, { replace: true })
-        else setBanner(r.message ?? 'Could not create lead')
+        if (r.lead) {
+          setLead({
+            ...r.lead,
+            contact_name: r.lead.contact_name ?? '',
+            role: r.lead.role ?? '',
+            url: r.lead.url ?? '',
+            notes: r.lead.notes ?? '',
+          })
+          setLastContactLocal(toLocalDatetimeValue(r.lead.last_contact_at))
+          navigate(`/leads/${r.lead.id}`, { replace: true })
+        } else setBanner(r.message ?? 'Could not create lead')
       } else if (id) {
         const lastIso =
           lastContactLocal.trim() === ''
@@ -128,7 +170,13 @@ export function LeadEditorPage() {
           last_contact_at: lastIso,
         })
         if (r.lead) {
-          setLead({ ...r.lead, contact_name: r.lead.contact_name ?? '' })
+          setLead({
+            ...r.lead,
+            contact_name: r.lead.contact_name ?? '',
+            role: r.lead.role ?? '',
+            url: r.lead.url ?? '',
+            notes: r.lead.notes ?? '',
+          })
           setLastContactLocal(toLocalDatetimeValue(r.lead.last_contact_at))
         } else setBanner('Could not save')
       }
