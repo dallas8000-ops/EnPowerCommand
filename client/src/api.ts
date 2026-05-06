@@ -1,4 +1,5 @@
 import { apiUrl } from './apiBase'
+import { clearToken, getToken } from './auth'
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
 
@@ -11,6 +12,28 @@ async function parseJson(res: Response) {
   }
 }
 
+/** Authenticated API calls; redirects to /login on 401. */
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers)
+  if (
+    init.body &&
+    typeof init.body === 'string' &&
+    !headers.has('Content-Type')
+  ) {
+    headers.set('Content-Type', 'application/json')
+  }
+  const t = getToken()
+  if (t) headers.set('Authorization', `Bearer ${t}`)
+  const res = await fetch(apiUrl(path), { ...init, headers })
+  if (res.status === 401) {
+    clearToken()
+    if (!window.location.pathname.startsWith('/login')) {
+      window.location.assign(`${window.location.origin}/login`)
+    }
+  }
+  return res
+}
+
 export type Lead = {
   id: string
   company: string
@@ -20,6 +43,7 @@ export type Lead = {
   notes: string | null
   stage: string
   next_action_at: string | null
+  last_contact_at: string | null
   created_at: string
   updated_at: string
 }
@@ -29,6 +53,7 @@ export type Health = {
   service: string
   db: boolean
   ai: boolean
+  auth_required?: boolean
 }
 
 export async function getHealth(): Promise<Health> {
@@ -36,12 +61,64 @@ export async function getHealth(): Promise<Health> {
   return parseJson(res) as Promise<Health>
 }
 
+export async function login(
+  password: string
+): Promise<{ token?: string; error?: string }> {
+  const res = await fetch(apiUrl('/api/auth/login'), {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify({ password }),
+  })
+  const data = (await parseJson(res)) as { token?: string; error?: string }
+  if (res.ok && data.token) return { token: data.token }
+  return {
+    error:
+      typeof data.error === 'string'
+        ? data.error
+        : res.status === 400
+          ? (data as { hint?: string }).hint ?? 'Login not available'
+          : 'Login failed',
+  }
+}
+
+export async function getProfile(): Promise<{
+  resume_text: string
+  updated_at: string | null
+}> {
+  const res = await apiFetch('/api/profile')
+  return parseJson(res) as Promise<{ resume_text: string; updated_at: string | null }>
+}
+
+export async function patchProfile(resume_text: string): Promise<void> {
+  const res = await apiFetch('/api/profile', {
+    method: 'PATCH',
+    body: JSON.stringify({ resume_text }),
+  })
+  if (!res.ok) throw new Error('Could not save profile')
+}
+
+/** Resume for AI: server profile first, then browser fallback. */
+export async function getResumeContext(): Promise<string> {
+  try {
+    const p = await getProfile()
+    if (p.resume_text?.trim()) return p.resume_text.trim()
+  } catch {
+    /* offline or 503 */
+  }
+  try {
+    const { loadProfile } = await import('./profile')
+    return loadProfile().resumeText.trim()
+  } catch {
+    return ''
+  }
+}
+
 export async function listLeads(): Promise<{
   leads: Lead[]
   error?: string
   hint?: string
 }> {
-  const res = await fetch(apiUrl('/api/leads'))
+  const res = await apiFetch('/api/leads')
   const data = (await parseJson(res)) as {
     leads?: Lead[]
     error?: string
@@ -58,7 +135,7 @@ export async function listLeads(): Promise<{
 }
 
 export async function getLead(id: string): Promise<{ lead?: Lead; error?: string }> {
-  const res = await fetch(apiUrl(`/api/leads/${id}`))
+  const res = await apiFetch(`/api/leads/${id}`)
   const data = await parseJson(res)
   if (!res.ok) return data
   return data as { lead: Lead }
@@ -72,6 +149,7 @@ function describeSaveFailure(status: number, data: Record<string, unknown>): str
     return hint || 'Server error — check API logs and DATABASE_URL.'
   if (status === 503)
     return hint || 'Database not configured — set DATABASE_URL and run db:init on the API.'
+  if (status === 401) return 'Session expired — sign in again.'
   return hint || `Could not save (${status}).`
 }
 
@@ -81,9 +159,8 @@ export async function createLead(body: Partial<Lead> & { company: string }): Pro
   message?: string
 }> {
   try {
-    const res = await fetch(apiUrl('/api/leads'), {
+    const res = await apiFetch('/api/leads', {
       method: 'POST',
-      headers: jsonHeaders,
       body: JSON.stringify(body),
     })
     const data = (await parseJson(res)) as Record<string, unknown>
@@ -103,12 +180,60 @@ export async function createLead(body: Partial<Lead> & { company: string }): Pro
 }
 
 export async function patchLead(id: string, body: Partial<Lead>) {
-  const res = await fetch(apiUrl(`/api/leads/${id}`), {
+  const res = await apiFetch(`/api/leads/${id}`, {
     method: 'PATCH',
-    headers: jsonHeaders,
     body: JSON.stringify(body),
   })
   return parseJson(res) as Promise<{ lead?: Lead; error?: unknown }>
+}
+
+export type LeadActivity = {
+  id: string
+  kind: string
+  note: string | null
+  created_at: string
+}
+
+export async function listActivities(
+  leadId: string
+): Promise<{ activities: LeadActivity[] }> {
+  const res = await apiFetch(`/api/leads/${leadId}/activities`)
+  return parseJson(res) as Promise<{ activities: LeadActivity[] }>
+}
+
+export async function postActivity(
+  leadId: string,
+  body: { kind: string; note?: string | null }
+): Promise<{ activity?: LeadActivity }> {
+  const res = await apiFetch(`/api/leads/${leadId}/activities`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+  return parseJson(res) as Promise<{ activity?: LeadActivity }>
+}
+
+export async function downloadLeadsCsv(): Promise<void> {
+  const res = await apiFetch('/api/export/leads.csv')
+  if (!res.ok) return
+  const blob = await res.blob()
+  const u = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = u
+  a.download = 'enpower-leads.csv'
+  a.click()
+  URL.revokeObjectURL(u)
+}
+
+export async function downloadActivitiesCsv(): Promise<void> {
+  const res = await apiFetch('/api/export/activities.csv')
+  if (!res.ok) return
+  const blob = await res.blob()
+  const u = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = u
+  a.download = 'enpower-activity-log.csv'
+  a.click()
+  URL.revokeObjectURL(u)
 }
 
 export type OutreachResult = {
@@ -131,9 +256,8 @@ export async function createLeadFromPosting(body: {
   error?: unknown
   status: number
 }> {
-  const res = await fetch(apiUrl('/api/leads/from-posting'), {
+  const res = await apiFetch('/api/leads/from-posting', {
     method: 'POST',
-    headers: jsonHeaders,
     body: JSON.stringify(body),
   })
   const data = await parseJson(res)
@@ -154,9 +278,8 @@ export async function generateOutreach(body: {
   notes?: string | null
   resume_context?: string | null
 }): Promise<OutreachResult & { status: number }> {
-  const res = await fetch(apiUrl('/api/outreach'), {
+  const res = await apiFetch('/api/outreach', {
     method: 'POST',
-    headers: jsonHeaders,
     body: JSON.stringify(body),
   })
   const data = (await parseJson(res)) as OutreachResult & {

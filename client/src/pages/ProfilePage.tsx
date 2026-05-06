@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { getProfile, patchProfile } from '../api'
 import { loadProfile, saveProfile } from '../profile'
 
 export function ProfilePage() {
@@ -9,11 +10,53 @@ export function ProfilePage() {
   const [banner, setBanner] = useState<string | null>(null)
   const [bannerTone, setBannerTone] = useState<'success' | 'error'>('success')
   const [justSaved, setJustSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const p = loadProfile()
-    setResumeText(p.resumeText)
-    setSavedAt(p.updatedAt ? new Date(p.updatedAt).toLocaleString() : '')
+    let cancelled = false
+    ;(async () => {
+      try {
+        const remote = await getProfile()
+        if (cancelled) return
+        if (remote.resume_text?.trim()) {
+          setResumeText(remote.resume_text)
+          setSavedAt(
+            remote.updated_at ? new Date(remote.updated_at).toLocaleString() : ''
+          )
+        } else {
+          const local = loadProfile()
+          if (local.resumeText.trim()) {
+            setResumeText(local.resumeText)
+            try {
+              await patchProfile(local.resumeText)
+              const again = await getProfile()
+              if (again.updated_at) {
+                setSavedAt(new Date(again.updated_at).toLocaleString())
+              }
+              setBannerTone('success')
+              setBanner('Copied your browser profile into the database (one-time migration).')
+            } catch {
+              setResumeText(local.resumeText)
+            }
+          }
+        }
+      } catch {
+        const local = loadProfile()
+        if (!cancelled) {
+          setResumeText(local.resumeText)
+          setSavedAt(
+            local.updatedAt ? new Date(local.updatedAt).toLocaleString() : ''
+          )
+          setBannerTone('error')
+          setBanner('Could not load server profile — showing browser copy only. Save will try both.')
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -23,23 +66,44 @@ export function ProfilePage() {
     return () => window.clearTimeout(t)
   }, [banner, bannerTone])
 
-  function onSave(e: FormEvent) {
+  async function onSave(e: FormEvent) {
     e.preventDefault()
+    setJustSaved(false)
     try {
-      const p = saveProfile({ resumeText })
-      setSavedAt(new Date(p.updatedAt).toLocaleString())
+      await patchProfile(resumeText)
+      saveProfile({ resumeText })
+      const remote = await getProfile()
+      setSavedAt(
+        remote.updated_at ? new Date(remote.updated_at).toLocaleString() : ''
+      )
       setBannerTone('success')
       setBanner(
-        'Saved to this browser only (local storage). Open Import job — use “attach resume” there; refresh that page if the box was still disabled.'
+        'Saved to the database and mirrored in this browser. Use Import / Generate outreach from any device after you sign in.'
       )
       setJustSaved(true)
       window.setTimeout(() => setJustSaved(false), 4000)
     } catch {
-      setBannerTone('error')
-      setBanner(
-        'Could not save — this browser may block storage (private mode, full disk, or site settings). Try another browser or turn off strict tracking protection for this site.'
-      )
+      try {
+        saveProfile({ resumeText })
+        const p = loadProfile()
+        setSavedAt(new Date(p.updatedAt).toLocaleString())
+        setBannerTone('error')
+        setBanner(
+          'Server save failed — kept a copy in this browser only. Check login and API logs.'
+        )
+      } catch {
+        setBannerTone('error')
+        setBanner('Could not save anywhere — check browser storage and API.')
+      }
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="page stretch">
+        <p className="muted">Loading profile…</p>
+      </div>
+    )
   }
 
   return (
@@ -55,9 +119,9 @@ export function ProfilePage() {
       </header>
 
       <p className="lede">
-        Paste your resume or a tight summary (skills, stacks, 3 wins). It stays in{' '}
-        <strong>browser storage only</strong> — used when you import job postings and generate
-        outreach so drafts can cite relevant proof points.
+        Resume text is stored in the <strong>database</strong> (after you sign in when the API
+        requires it) and <strong>mirrored</strong> in this browser for offline fallback. Used for
+        job import and outreach drafts.
       </p>
 
       <form className="grid-form" onSubmit={onSave}>

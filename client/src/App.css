@@ -39,6 +39,21 @@
   color: var(--text-h);
 }
 
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: var(--text-h);
+}
+
 .main {
   flex: 1;
   padding: 2rem 1.5rem 3rem;
@@ -333,4 +348,47 @@ label.checkbox-row {
 .save-stamp--flash {
   color: #86efac;
   font-weight: 600;
+}
+
+.activity-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.activity-section h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
+
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.activity-list li {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.activity-list li:last-child {
+  border-bottom: none;
+}
+
+.activity-note {
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+
+.activity-form {
+  margin-top: 0.75rem;
+  grid-template-columns: 1fr 1fr;
 }

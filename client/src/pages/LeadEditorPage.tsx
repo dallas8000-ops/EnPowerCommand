@@ -5,13 +5,41 @@ import {
   createLead,
   generateOutreach,
   getLead,
+  getResumeContext,
+  listActivities,
   patchLead,
+  postActivity,
   type Lead,
+  type LeadActivity,
   type OutreachResult,
 } from '../api'
-import { loadProfile } from '../profile'
 
 const stages = ['new', 'contacted', 'call', 'proposal', 'won', 'lost']
+
+const activityKindOptions = [
+  { value: 'note', label: 'Note' },
+  { value: 'contacted', label: 'Contacted' },
+  { value: 'applied', label: 'Applied' },
+  { value: 'interview', label: 'Interview' },
+  { value: 'follow_up', label: 'Follow-up' },
+  { value: 'other', label: 'Other' },
+]
+
+function toLocalDatetimeValue(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function formatOutreachForClipboard(o: OutreachResult): string {
+  const lines: string[] = ['Subject lines', ...((o.subject_lines ?? []).map((s) => `• ${s}`)), '', 'Drafts']
+  for (const d of o.drafts ?? []) {
+    lines.push('', `--- ${d.label} ---`, d.body, '')
+  }
+  return lines.join('\n').trim()
+}
 
 export function LeadEditorPage() {
   const { id } = useParams()
@@ -26,10 +54,16 @@ export function LeadEditorPage() {
     notes: '',
     stage: 'new',
   })
+  const [lastContactLocal, setLastContactLocal] = useState('')
   const [saving, setSaving] = useState(false)
   const [outreach, setOutreach] = useState<OutreachResult | null>(null)
   const [loadingAi, setLoadingAi] = useState(false)
   const [banner, setBanner] = useState<string | null>(null)
+  const [activities, setActivities] = useState<LeadActivity[]>([])
+  const [actKind, setActKind] = useState('note')
+  const [actNote, setActNote] = useState('')
+  const [logging, setLogging] = useState(false)
+  const [copyState, setCopyState] = useState<string | null>(null)
 
   useEffect(() => {
     if (isNew || !id) return
@@ -42,11 +76,24 @@ export function LeadEditorPage() {
           url: r.lead.url ?? '',
           notes: r.lead.notes ?? '',
         })
+        setLastContactLocal(toLocalDatetimeValue(r.lead.last_contact_at))
       } else {
         setBanner('Lead not found')
       }
     })
+    listActivities(id).then((r) => setActivities(r.activities ?? []))
   }, [id, isNew])
+
+  async function refreshActivities() {
+    if (!id || isNew) return
+    const r = await listActivities(id)
+    setActivities(r.activities ?? [])
+    const lr = await getLead(id)
+    if (lr.lead) {
+      setLead((prev) => ({ ...prev, ...lr.lead, last_contact_at: lr.lead!.last_contact_at }))
+      setLastContactLocal(toLocalDatetimeValue(lr.lead.last_contact_at))
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -65,6 +112,10 @@ export function LeadEditorPage() {
         if (r.lead) navigate(`/leads/${r.lead.id}`, { replace: true })
         else setBanner(r.message ?? 'Could not create lead')
       } else if (id) {
+        const lastIso =
+          lastContactLocal.trim() === ''
+            ? null
+            : new Date(lastContactLocal).toISOString()
         const r = await patchLead(id, {
           company: lead.company,
           contact_name: lead.contact_name || null,
@@ -72,9 +123,12 @@ export function LeadEditorPage() {
           url: lead.url || null,
           notes: lead.notes || null,
           stage: lead.stage,
+          last_contact_at: lastIso,
         })
-        if (r.lead) setLead({ ...r.lead, contact_name: r.lead.contact_name ?? '' })
-        else setBanner('Could not save')
+        if (r.lead) {
+          setLead({ ...r.lead, contact_name: r.lead.contact_name ?? '' })
+          setLastContactLocal(toLocalDatetimeValue(r.lead.last_contact_at))
+        } else setBanner('Could not save')
       }
     } finally {
       setSaving(false)
@@ -86,7 +140,7 @@ export function LeadEditorPage() {
     setOutreach(null)
     setBanner(null)
     try {
-      const resume = loadProfile().resumeText.trim()
+      const resume = await getResumeContext()
       const res = await generateOutreach(
         isNew
           ? {
@@ -105,6 +159,35 @@ export function LeadEditorPage() {
       setOutreach(res)
     } finally {
       setLoadingAi(false)
+    }
+  }
+
+  async function onLogActivity(e: FormEvent) {
+    e.preventDefault()
+    if (!id || isNew) return
+    setLogging(true)
+    setBanner(null)
+    try {
+      await postActivity(id, { kind: actKind, note: actNote.trim() || null })
+      setActNote('')
+      await refreshActivities()
+    } catch {
+      setBanner('Could not log activity')
+    } finally {
+      setLogging(false)
+    }
+  }
+
+  async function copyAllDrafts() {
+    if (!outreach) return
+    const text = formatOutreachForClipboard(outreach)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyState('Copied to clipboard')
+      window.setTimeout(() => setCopyState(null), 2500)
+    } catch {
+      setCopyState('Copy blocked — select text manually')
+      window.setTimeout(() => setCopyState(null), 4000)
     }
   }
 
@@ -174,6 +257,16 @@ export function LeadEditorPage() {
             ))}
           </select>
         </label>
+        {!isNew && (
+          <label>
+            Last contact (local time)
+            <input
+              type="datetime-local"
+              value={lastContactLocal}
+              onChange={(e) => setLastContactLocal(e.target.value)}
+            />
+          </label>
+        )}
         <div className="full actions-inline">
           <button className="btn primary" type="submit" disabled={saving}>
             {isNew ? 'Create lead' : 'Save'}
@@ -189,9 +282,64 @@ export function LeadEditorPage() {
         </div>
       </form>
 
+      {!isNew && id && (
+        <section className="activity-section">
+          <h2>Activity log</h2>
+          <p className="muted small">
+            <strong>Applied</strong> / <strong>Contacted</strong> / <strong>Interview</strong> /{' '}
+            <strong>Follow-up</strong> also set <strong>Last contact</strong> to now. Export all
+            activities from <Link to="/leads">Leads</Link> → CSV.
+          </p>
+          <ul className="activity-list">
+            {activities.length === 0 ? (
+              <li className="muted">No entries yet.</li>
+            ) : (
+              activities.map((a) => (
+                <li key={a.id}>
+                  <strong>{a.kind}</strong>{' '}
+                  <span className="muted small">
+                    {new Date(a.created_at).toLocaleString()}
+                  </span>
+                  {a.note ? <div className="activity-note">{a.note}</div> : null}
+                </li>
+              ))
+            )}
+          </ul>
+          <form className="grid-form activity-form" onSubmit={onLogActivity}>
+            <label>
+              Type
+              <select value={actKind} onChange={(e) => setActKind(e.target.value)}>
+                {activityKindOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="full">
+              Note (optional)
+              <input
+                value={actNote}
+                onChange={(e) => setActNote(e.target.value)}
+                placeholder="e.g. Submitted via Greenhouse; follow up Friday"
+              />
+            </label>
+            <button className="btn secondary" type="submit" disabled={logging}>
+              {logging ? 'Logging…' : 'Log activity'}
+            </button>
+          </form>
+        </section>
+      )}
+
       {outreach && (
         <section className="outreach">
-          <h2>Drafts</h2>
+          <div className="page-head" style={{ marginBottom: '0.5rem' }}>
+            <h2 style={{ margin: 0 }}>Drafts</h2>
+            <button type="button" className="btn secondary" onClick={copyAllDrafts}>
+              Copy all
+            </button>
+          </div>
+          {copyState && <p className="muted small">{copyState}</p>}
           {outreach.disclaimer && <p className="muted small">{outreach.disclaimer}</p>}
           {outreach.model && <p className="muted small">Model: {outreach.model}</p>}
           <div className="subjects">

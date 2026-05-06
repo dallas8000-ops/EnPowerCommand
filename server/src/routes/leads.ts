@@ -10,6 +10,7 @@ const leadBody = z.object({
   notes: z.string().optional().nullable(),
   stage: z.string().optional(),
   next_action_at: z.string().datetime().optional().nullable(),
+  last_contact_at: z.string().datetime().optional().nullable(),
 });
 
 const leadPatch = leadBody.partial();
@@ -24,7 +25,7 @@ export function registerLeadRoutes(app: Express): void {
       });
     }
     const r = await pool.query(
-      `SELECT id, company, contact_name, role, url, notes, stage, next_action_at, created_at, updated_at
+      `SELECT id, company, contact_name, role, url, notes, stage, next_action_at, last_contact_at, created_at, updated_at
        FROM leads ORDER BY updated_at DESC`
     );
     res.json({ leads: r.rows });
@@ -34,7 +35,7 @@ export function registerLeadRoutes(app: Express): void {
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: "Database not configured" });
     const r = await pool.query(
-      `SELECT id, company, contact_name, role, url, notes, stage, next_action_at, created_at, updated_at
+      `SELECT id, company, contact_name, role, url, notes, stage, next_action_at, last_contact_at, created_at, updated_at
        FROM leads WHERE id = $1`,
       [req.params.id]
     );
@@ -51,9 +52,9 @@ export function registerLeadRoutes(app: Express): void {
     if (!pool) return res.status(503).json({ error: "Database not configured" });
     const b = parsed.data;
     const r = await pool.query(
-      `INSERT INTO leads (company, contact_name, role, url, notes, stage, next_action_at)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'new'), $7)
-       RETURNING id, company, contact_name, role, url, notes, stage, next_action_at, created_at, updated_at`,
+      `INSERT INTO leads (company, contact_name, role, url, notes, stage, next_action_at, last_contact_at)
+       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'new'), $7, $8)
+       RETURNING id, company, contact_name, role, url, notes, stage, next_action_at, last_contact_at, created_at, updated_at`,
       [
         b.company,
         b.contact_name ?? null,
@@ -62,6 +63,7 @@ export function registerLeadRoutes(app: Express): void {
         b.notes ?? null,
         b.stage ?? null,
         b.next_action_at ?? null,
+        b.last_contact_at ?? null,
       ]
     );
     res.status(201).json({ lead: r.rows[0] });
@@ -83,6 +85,7 @@ export function registerLeadRoutes(app: Express): void {
       "notes",
       "stage",
       "next_action_at",
+      "last_contact_at",
     ]);
     const fields: string[] = [];
     const values: unknown[] = [];
@@ -101,7 +104,7 @@ export function registerLeadRoutes(app: Express): void {
     fields.push(`updated_at = now()`);
     values.push(req.params.id);
     const r = await pool.query(
-      `UPDATE leads SET ${fields.join(", ")} WHERE id = $${i} RETURNING id, company, contact_name, role, url, notes, stage, next_action_at, created_at, updated_at`,
+      `UPDATE leads SET ${fields.join(", ")} WHERE id = $${i} RETURNING id, company, contact_name, role, url, notes, stage, next_action_at, last_contact_at, created_at, updated_at`,
       values
     );
     if (r.rowCount === 0) return res.status(404).json({ error: "Not found" });

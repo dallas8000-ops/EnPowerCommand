@@ -133,7 +133,7 @@ export function registerPostingRoutes(app: Express): void {
     const insert = await pool.query(
       `INSERT INTO leads (company, contact_name, role, url, notes, stage)
        VALUES ($1, NULL, $2, $3, $4, 'new')
-       RETURNING id, company, contact_name, role, url, notes, stage, next_action_at, created_at, updated_at`,
+       RETURNING id, company, contact_name, role, url, notes, stage, next_action_at, last_contact_at, created_at, updated_at`,
       [
         extracted.company,
         extracted.role,

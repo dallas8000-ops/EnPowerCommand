@@ -37,6 +37,7 @@ export function Home() {
           <li data-on={health.ok}>API</li>
           <li data-on={health.db}>Postgres</li>
           <li data-on={health.ai}>OpenAI key</li>
+          <li data-on={Boolean(health.auth_required)}>Password login</li>
         </ul>
       )}
       <p className="hint">

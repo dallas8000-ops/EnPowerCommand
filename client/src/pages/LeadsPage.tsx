@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listLeads, type Lead } from '../api'
+import { downloadActivitiesCsv, downloadLeadsCsv, listLeads, type Lead } from '../api'
 
 export function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -21,7 +21,13 @@ export function LeadsPage() {
           <p className="eyebrow">Pipeline</p>
           <h1>Leads</h1>
         </div>
-        <div className="actions-inline" style={{ gap: '0.5rem' }}>
+        <div className="actions-inline" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button type="button" className="btn ghost" onClick={() => downloadLeadsCsv()}>
+            Export leads CSV
+          </button>
+          <button type="button" className="btn ghost" onClick={() => downloadActivitiesCsv()}>
+            Export activity CSV
+          </button>
           <Link className="btn secondary" to="/leads/import">
             Import job
           </Link>
@@ -44,6 +50,7 @@ export function LeadsPage() {
               <th>Company</th>
               <th>Contact</th>
               <th>Stage</th>
+              <th>Last contact</th>
               <th></th>
             </tr>
           </thead>
@@ -54,6 +61,11 @@ export function LeadsPage() {
                 <td>{l.contact_name || '—'}</td>
                 <td>
                   <span className="pill">{l.stage}</span>
+                </td>
+                <td className="muted small">
+                  {l.last_contact_at
+                    ? new Date(l.last_contact_at).toLocaleDateString()
+                    : '—'}
                 </td>
                 <td className="right">
                   <Link className="link" to={`/leads/${l.id}`}>

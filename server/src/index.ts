@@ -1,9 +1,14 @@
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
+import { authConfigured, requireAuth } from "./middleware/auth.js";
+import { registerActivityRoutes } from "./routes/activities.js";
+import { registerAuthRoutes } from "./routes/auth.js";
+import { registerExportRoutes } from "./routes/export.js";
 import { registerLeadRoutes } from "./routes/leads.js";
 import { registerOutreachRoutes } from "./routes/outreach.js";
 import { registerPostingRoutes } from "./routes/posting.js";
+import { registerProfileRoutes } from "./routes/profile.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -23,9 +28,15 @@ app.get("/api/health", (_req, res) => {
     service: "enpower-command",
     db: Boolean(process.env.DATABASE_URL),
     ai: Boolean(process.env.OPENAI_API_KEY),
+    auth_required: authConfigured(),
   });
 });
 
+registerAuthRoutes(app);
+app.use(requireAuth);
+registerProfileRoutes(app);
+registerExportRoutes(app);
+registerActivityRoutes(app);
 registerLeadRoutes(app);
 registerPostingRoutes(app);
 registerOutreachRoutes(app);

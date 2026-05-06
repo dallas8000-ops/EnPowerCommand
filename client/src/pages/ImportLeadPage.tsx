@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { createLeadFromPosting } from '../api'
-import { hasResumeText, loadProfile } from '../profile'
+import { createLeadFromPosting, getProfile, getResumeContext } from '../api'
+import { hasResumeText } from '../profile'
 
 export function ImportLeadPage() {
   const navigate = useNavigate()
@@ -15,16 +15,23 @@ export function ImportLeadPage() {
   const [banner, setBanner] = useState<string | null>(null)
 
   useEffect(() => {
-    setHasProfile(hasResumeText())
+    ;(async () => {
+      try {
+        const p = await getProfile()
+        setHasProfile(Boolean(p.resume_text?.trim()) || hasResumeText())
+      } catch {
+        setHasProfile(hasResumeText())
+      }
+    })()
   }, [])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
     setBanner(null)
-    const profile = loadProfile()
-    const resume_context =
-      attachResume && profile.resumeText.trim() ? profile.resumeText : undefined
+    const resume_context = attachResume
+      ? (await getResumeContext()) || undefined
+      : undefined
     const r = await createLeadFromPosting({
       raw_posting: rawPosting,
       resume_context,
