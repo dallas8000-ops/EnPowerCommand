@@ -14,7 +14,7 @@ import {
   type OutreachResult,
 } from '../api'
 
-const stages = ['new', 'contacted', 'call', 'proposal', 'won', 'lost']
+const stages = ['new', 'applied', 'contacted', 'interview', 'call', 'proposal', 'won', 'lost']
 
 const activityKindOptions = [
   { value: 'note', label: 'Note' },
@@ -64,6 +64,8 @@ export function LeadEditorPage() {
   const [actNote, setActNote] = useState('')
   const [logging, setLogging] = useState(false)
   const [copyState, setCopyState] = useState<string | null>(null)
+  const [quickApplyBusy, setQuickApplyBusy] = useState(false)
+  const [quickApplyState, setQuickApplyState] = useState<string | null>(null)
 
   useEffect(() => {
     if (isNew || !id) return
@@ -184,10 +186,30 @@ export function LeadEditorPage() {
     try {
       await navigator.clipboard.writeText(text)
       setCopyState('Copied to clipboard')
-      window.setTimeout(() => setCopyState(null), 2500)
+      globalThis.setTimeout(() => setCopyState(null), 2500)
     } catch {
       setCopyState('Copy blocked — select text manually')
-      window.setTimeout(() => setCopyState(null), 4000)
+      globalThis.setTimeout(() => setCopyState(null), 4000)
+    }
+  }
+
+  async function onAppliedNow() {
+    if (!id || isNew) return
+    setQuickApplyBusy(true)
+    setQuickApplyState(null)
+    setBanner(null)
+    const nowIso = new Date().toISOString()
+    try {
+      await patchLead(id, { stage: 'applied', last_contact_at: nowIso })
+      await postActivity(id, { kind: 'applied', note: 'Applied now (quick action)' })
+      await refreshActivities()
+      setQuickApplyState('Marked as applied and logged in activity.')
+      globalThis.setTimeout(() => setQuickApplyState(null), 3000)
+    } catch {
+      setQuickApplyState('Could not mark as applied right now.')
+      globalThis.setTimeout(() => setQuickApplyState(null), 4000)
+    } finally {
+      setQuickApplyBusy(false)
     }
   }
 
@@ -271,6 +293,16 @@ export function LeadEditorPage() {
           <button className="btn primary" type="submit" disabled={saving}>
             {isNew ? 'Create lead' : 'Save'}
           </button>
+          {!isNew && (
+            <button
+              className="btn secondary"
+              type="button"
+              onClick={onAppliedNow}
+              disabled={quickApplyBusy}
+            >
+              {quickApplyBusy ? 'Applying…' : 'Applied now'}
+            </button>
+          )}
           <button
             className="btn secondary"
             type="button"
@@ -280,6 +312,7 @@ export function LeadEditorPage() {
             {loadingAi ? 'Generating…' : 'Generate outreach'}
           </button>
         </div>
+        {!isNew && quickApplyState && <p className="full muted small">{quickApplyState}</p>}
       </form>
 
       {!isNew && id && (

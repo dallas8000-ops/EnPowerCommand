@@ -392,3 +392,27 @@ label.checkbox-row {
   margin-top: 0.75rem;
   grid-template-columns: 1fr 1fr;
 }
+
+.weekly-stage-card {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.weekly-stage-card h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.stage-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.export-reminder p {
+  margin: 0.5rem 0 0.75rem;
+}
