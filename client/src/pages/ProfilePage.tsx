@@ -7,6 +7,7 @@ export function ProfilePage() {
   const [resumeText, setResumeText] = useState('')
   const [savedAt, setSavedAt] = useState('')
   const [banner, setBanner] = useState<string | null>(null)
+  const [bannerTone, setBannerTone] = useState<'success' | 'error'>('success')
   const [justSaved, setJustSaved] = useState(false)
 
   useEffect(() => {
@@ -17,19 +18,28 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (!banner) return
-    const t = window.setTimeout(() => setBanner(null), 8000)
+    const ms = bannerTone === 'error' ? 12000 : 10000
+    const t = window.setTimeout(() => setBanner(null), ms)
     return () => window.clearTimeout(t)
-  }, [banner])
+  }, [banner, bannerTone])
 
   function onSave(e: FormEvent) {
     e.preventDefault()
-    const p = saveProfile({ resumeText })
-    setSavedAt(new Date(p.updatedAt).toLocaleString())
-    setBanner(
-      'Saved to this browser (local storage). On Import job, “attach resume” should be available — refresh that page if needed.'
-    )
-    setJustSaved(true)
-    window.setTimeout(() => setJustSaved(false), 2500)
+    try {
+      const p = saveProfile({ resumeText })
+      setSavedAt(new Date(p.updatedAt).toLocaleString())
+      setBannerTone('success')
+      setBanner(
+        'Saved to this browser only (local storage). Open Import job — use “attach resume” there; refresh that page if the box was still disabled.'
+      )
+      setJustSaved(true)
+      window.setTimeout(() => setJustSaved(false), 4000)
+    } catch {
+      setBannerTone('error')
+      setBanner(
+        'Could not save — this browser may block storage (private mode, full disk, or site settings). Try another browser or turn off strict tracking protection for this site.'
+      )
+    }
   }
 
   return (
@@ -50,13 +60,6 @@ export function ProfilePage() {
         outreach so drafts can cite relevant proof points.
       </p>
 
-      {banner && (
-        <div className="banner success" role="status" aria-live="polite">
-          {banner}
-        </div>
-      )}
-      {savedAt && <p className="muted small">Last saved: {savedAt}</p>}
-
       <form className="grid-form" onSubmit={onSave}>
         <label className="full">
           Resume / highlights
@@ -75,6 +78,20 @@ export function ProfilePage() {
             Leads
           </Link>
         </div>
+        {banner && (
+          <div
+            className={bannerTone === 'success' ? 'banner success' : 'banner error'}
+            role="status"
+            aria-live="polite"
+          >
+            {banner}
+          </div>
+        )}
+        {savedAt && (
+          <p className={`save-stamp ${justSaved ? 'save-stamp--flash' : ''}`}>
+            Last saved: {savedAt}
+          </p>
+        )}
       </form>
     </div>
   )

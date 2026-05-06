@@ -25,7 +25,11 @@ export function saveProfile(partial: Pick<Profile, 'resumeText'>): Profile {
     resumeText: partial.resumeText,
     updatedAt: new Date().toISOString(),
   }
-  localStorage.setItem(KEY, JSON.stringify(p))
+  try {
+    localStorage.setItem(KEY, JSON.stringify(p))
+  } catch {
+    throw new Error('localStorage_set_failed')
+  }
   return p
 }
 

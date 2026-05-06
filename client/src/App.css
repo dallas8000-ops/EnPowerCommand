@@ -322,3 +322,15 @@ label.checkbox-row {
 .checkbox-row input[type='checkbox'] {
   margin-top: 0.25rem;
 }
+
+.save-stamp {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.save-stamp--flash {
+  color: #86efac;
+  font-weight: 600;
+}
