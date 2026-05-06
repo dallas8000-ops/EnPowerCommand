@@ -171,6 +171,12 @@ code {
   background: color-mix(in srgb, #ef4444 12%, transparent);
 }
 
+.banner.success {
+  border-color: color-mix(in srgb, #22c55e 50%, var(--border));
+  background: color-mix(in srgb, #22c55e 14%, transparent);
+  color: var(--text-h);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

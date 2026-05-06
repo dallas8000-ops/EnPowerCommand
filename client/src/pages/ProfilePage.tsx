@@ -7,6 +7,7 @@ export function ProfilePage() {
   const [resumeText, setResumeText] = useState('')
   const [savedAt, setSavedAt] = useState('')
   const [banner, setBanner] = useState<string | null>(null)
+  const [justSaved, setJustSaved] = useState(false)
 
   useEffect(() => {
     const p = loadProfile()
@@ -14,11 +15,21 @@ export function ProfilePage() {
     setSavedAt(p.updatedAt ? new Date(p.updatedAt).toLocaleString() : '')
   }, [])
 
+  useEffect(() => {
+    if (!banner) return
+    const t = window.setTimeout(() => setBanner(null), 8000)
+    return () => window.clearTimeout(t)
+  }, [banner])
+
   function onSave(e: FormEvent) {
     e.preventDefault()
     const p = saveProfile({ resumeText })
     setSavedAt(new Date(p.updatedAt).toLocaleString())
-    setBanner('Saved locally in this browser.')
+    setBanner(
+      'Saved to this browser (local storage). On Import job, “attach resume” should be available — refresh that page if needed.'
+    )
+    setJustSaved(true)
+    window.setTimeout(() => setJustSaved(false), 2500)
   }
 
   return (
@@ -39,10 +50,12 @@ export function ProfilePage() {
         outreach so drafts can cite relevant proof points.
       </p>
 
-      {banner && <div className="banner">{banner}</div>}
-      {savedAt && !banner && (
-        <p className="muted small">Last saved: {savedAt}</p>
+      {banner && (
+        <div className="banner success" role="status" aria-live="polite">
+          {banner}
+        </div>
       )}
+      {savedAt && <p className="muted small">Last saved: {savedAt}</p>}
 
       <form className="grid-form" onSubmit={onSave}>
         <label className="full">
@@ -56,7 +69,7 @@ export function ProfilePage() {
         </label>
         <div className="full actions-inline">
           <button className="btn primary" type="submit">
-            Save profile
+            {justSaved ? 'Saved ✓' : 'Save profile'}
           </button>
           <Link className="btn ghost" to="/leads">
             Leads
