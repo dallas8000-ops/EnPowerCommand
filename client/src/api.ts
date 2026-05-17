@@ -457,6 +457,54 @@ export type CandidateMatch = {
   reason: string
 }
 
+export type TeamMember = {
+  id: string
+  email: string
+  role: string
+  created_at: string
+}
+
+export type TeamInvite = {
+  id: string
+  email: string
+  role: string
+  expires_at: string
+  created_at: string
+}
+
+export async function getTeam(): Promise<{ members: TeamMember[]; pending_invites: TeamInvite[] }> {
+  const res = await apiFetch('/api/team')
+  return parseJson(res) as Promise<{ members: TeamMember[]; pending_invites: TeamInvite[] }>
+}
+
+export async function inviteTeamMember(email: string, role: string): Promise<{ ok: boolean; invite_url: string }> {
+  const res = await apiFetch('/api/team/invite', { method: 'POST', body: JSON.stringify({ email, role }) })
+  return parseJson(res) as Promise<{ ok: boolean; invite_url: string }>
+}
+
+export async function updateTeamMemberRole(userId: string, role: string): Promise<{ member: TeamMember }> {
+  const res = await apiFetch(`/api/team/${userId}`, { method: 'PATCH', body: JSON.stringify({ role }) })
+  return parseJson(res) as Promise<{ member: TeamMember }>
+}
+
+export async function removeTeamMember(userId: string): Promise<void> {
+  await apiFetch(`/api/team/${userId}`, { method: 'DELETE' })
+}
+
+export async function cancelTeamInvite(inviteId: string): Promise<void> {
+  await apiFetch(`/api/team/invites/${inviteId}`, { method: 'DELETE' })
+}
+
+export async function getInviteDetails(token: string): Promise<{ email: string; role: string; tenant_name: string }> {
+  const res = await apiFetch(`/api/auth/invite/${token}`)
+  return parseJson(res) as Promise<{ email: string; role: string; tenant_name: string }>
+}
+
+export async function acceptInvite(token: string, name: string, password: string): Promise<{ token: string; role: string }> {
+  const res = await apiFetch('/api/auth/accept-invite', { method: 'POST', body: JSON.stringify({ token, name, password }) })
+  return parseJson(res) as Promise<{ token: string; role: string }>
+}
+
 export type Interview = {
   id: string
   scheduled_at: string

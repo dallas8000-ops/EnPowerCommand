@@ -5,6 +5,18 @@ export type AuthMeta = {
   tenant_name?: string
   role?: string
   plan?: string
+  userId?: string
+}
+
+export function getUserId(): string | null {
+  try {
+    const token = getToken()
+    if (!token) return null
+    const payload = JSON.parse(atob(token.split('.')[1])) as { sub?: string }
+    return payload.sub ?? null
+  } catch {
+    return null
+  }
 }
 
 export function getToken(): string | null {

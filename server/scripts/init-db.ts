@@ -26,10 +26,12 @@ async function main() {
   const schemaV2Path = join(__dirname, "..", "sql", "schema-v2.sql");
   const schemaV3Path = join(__dirname, "..", "sql", "schema-v3.sql");
   const schemaV4Path = join(__dirname, "..", "sql", "schema-v4.sql");
+  const schemaV5Path = join(__dirname, "..", "sql", "schema-v5.sql");
   const sql = readFileSync(schemaPath, "utf8");
   const sqlV2 = readFileSync(schemaV2Path, "utf8");
   const sqlV3 = readFileSync(schemaV3Path, "utf8");
   const sqlV4 = readFileSync(schemaV4Path, "utf8");
+  const sqlV5 = readFileSync(schemaV5Path, "utf8");
 
   const client = new pg.Client({
     connectionString: url,
@@ -45,6 +47,8 @@ async function main() {
     console.log("Schema v3 (public job board) applied.");
     await client.query(sqlV4);
     console.log("Schema v4 (interview scheduling) applied.");
+    await client.query(sqlV5);
+    console.log("Schema v5 (team invites) applied.");
     await client.query(`
       INSERT INTO tenants (id, name, subscription_status) VALUES
         ('00000000-0000-0000-0000-000000000000', 'Dev Tenant', 'active')

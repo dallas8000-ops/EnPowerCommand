@@ -21,6 +21,8 @@ import { RegisterPage } from './pages/RegisterPage'
 import { JdGeneratorPage } from './pages/JdGeneratorPage'
 import { CandidateOutreachPage } from './pages/CandidateOutreachPage'
 import { InterviewsPage } from './pages/InterviewsPage'
+import { TeamPage } from './pages/TeamPage'
+import { AcceptInvitePage } from './pages/AcceptInvitePage'
 
 function ProtectedLayout() {
   const [gate, setGate] = useState<'loading' | 'login' | 'app'>('loading')
@@ -62,6 +64,7 @@ function ProtectedLayout() {
           <NavLink to="/pipeline">Pipeline</NavLink>
           <NavLink to="/leads">Leads</NavLink>
           <NavLink to="/profile">Profile</NavLink>
+          <NavLink to="/team">Team</NavLink>
           <NavLink to="/interviews">Interviews</NavLink>
           <NavLink to="/ai/outreach">AI Tools</NavLink>
           <NavLink to="/billing" title={meta.tenant_name ?? 'Billing'}>Billing</NavLink>
@@ -93,6 +96,7 @@ function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/jobs" element={<JobBoardPage />} />
       <Route path="/post-job" element={<PostJobPage />} />
+      <Route path="/invite/:token" element={<AcceptInvitePage />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/candidates" element={<CandidatesPage />} />
@@ -108,6 +112,7 @@ function App() {
         <Route path="/ai/jd-generator" element={<JdGeneratorPage />} />
         <Route path="/ai/outreach" element={<CandidateOutreachPage />} />
         <Route path="/interviews" element={<InterviewsPage />} />
+        <Route path="/team" element={<TeamPage />} />
       </Route>
     </Routes>
   )
