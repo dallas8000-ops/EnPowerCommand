@@ -95,7 +95,7 @@ export function PostJobPage() {
               Salary / comp range
               <input value={form.salary_range} onChange={(e) => set('salary_range', e.target.value)} placeholder="$120k – $150k" />
             </label>
-            <label className="checkbox-row">
+            <label className="checkbox-row" style={{ gridColumn: '1 / -1' }}>
               <input type="checkbox" checked={form.remote} onChange={(e) => set('remote', e.target.checked)} />
               Remote / hybrid role
             </label>
@@ -105,7 +105,7 @@ export function PostJobPage() {
         <div className="form-card">
           <h2>Role details</h2>
           <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
-            <label>
+            <label style={{ gridColumn: '1 / -1' }}>
               Job description
               <textarea
                 rows={5}
@@ -114,7 +114,7 @@ export function PostJobPage() {
                 placeholder="Describe the role, responsibilities, and required skills…"
               />
             </label>
-            <label>
+            <label style={{ gridColumn: '1 / -1' }}>
               Additional notes for our team
               <textarea
                 rows={3}

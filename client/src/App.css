@@ -798,6 +798,43 @@ label.checkbox-row {
   margin: 0 0 1.25rem;
 }
 
+/* Form grid layout */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.form-grid label input,
+.form-grid label textarea,
+.form-grid label select {
+  margin-top: 0.1rem;
+}
+
+.form-grid label.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Form section card */
 .form-card {
   background: var(--surface);
