@@ -19,6 +19,7 @@ import { JobBoardPage } from './pages/JobBoardPage'
 import { PostJobPage } from './pages/PostJobPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { JdGeneratorPage } from './pages/JdGeneratorPage'
+import { CandidateOutreachPage } from './pages/CandidateOutreachPage'
 
 function ProtectedLayout() {
   const [gate, setGate] = useState<'loading' | 'login' | 'app'>('loading')
@@ -60,7 +61,7 @@ function ProtectedLayout() {
           <NavLink to="/pipeline">Pipeline</NavLink>
           <NavLink to="/leads">Leads</NavLink>
           <NavLink to="/profile">Profile</NavLink>
-          <NavLink to="/ai/jd-generator">AI Tools</NavLink>
+          <NavLink to="/ai/outreach">AI Tools</NavLink>
           <NavLink to="/billing" title={meta.tenant_name ?? 'Billing'}>Billing</NavLink>
           {getToken() && (
             <button
@@ -103,6 +104,7 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/billing" element={<BillingPage />} />
         <Route path="/ai/jd-generator" element={<JdGeneratorPage />} />
+        <Route path="/ai/outreach" element={<CandidateOutreachPage />} />
       </Route>
     </Routes>
   )

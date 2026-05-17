@@ -17,6 +17,7 @@ import { registerScreeningRoutes } from "./routes/screening.js";
 import { registerResumeParseRoutes } from "./routes/resume-parse.js";
 import { registerMatchingRoutes } from "./routes/matching.js";
 import { registerJdGeneratorRoutes } from "./routes/jd-generator.js";
+import { registerCandidateOutreachRoutes } from "./routes/candidate-outreach.js";
 import { registerProfileRoutes } from "./routes/profile.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerRegisterRoutes } from "./routes/register.js";
@@ -66,6 +67,7 @@ registerScreeningRoutes(app);
 registerResumeParseRoutes(app);
 registerMatchingRoutes(app);
 registerJdGeneratorRoutes(app);
+registerCandidateOutreachRoutes(app);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

@@ -457,6 +457,15 @@ export type CandidateMatch = {
   reason: string
 }
 
+export async function draftCandidateOutreach(params: {
+  candidate_id: string
+  job_order_id: string
+  tone: 'professional' | 'friendly' | 'concise'
+}): Promise<{ email: string; source: string }> {
+  const res = await apiFetch('/api/ai/candidate-outreach', { method: 'POST', body: JSON.stringify(params) })
+  return parseJson(res) as Promise<{ email: string; source: string }>
+}
+
 export async function generateJobDescription(params: {
   title: string; company: string; location?: string; remote?: boolean; salary_range?: string; notes?: string
 }): Promise<{ description: string; source: string }> {
