@@ -39,7 +39,65 @@ const submitSchema = z.object({
   client_notes: z.string().optional(),
 });
 
+function escapeXml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 export function registerPublicRoutes(app: Express): void {
+  app.get("/feed/jobs.xml", async (_req: Request, res: Response) => {
+    const pool = getPool();
+    if (!pool) { res.status(503).send('Database not configured'); return; }
+    const tenantId = getPublicTenantId();
+    const r = tenantId
+      ? await pool.query(
+          `SELECT j.id, j.client_company, j.title, j.location, j.remote, j.salary_range, j.description, j.opened_at,
+                  t.name AS agency_name
+           FROM job_orders j JOIN tenants t ON t.id = j.tenant_id
+           WHERE j.tenant_id = $1 AND j.status = 'open' ORDER BY j.opened_at DESC`, [tenantId])
+      : await pool.query(
+          `SELECT j.id, j.client_company, j.title, j.location, j.remote, j.salary_range, j.description, j.opened_at,
+                  t.name AS agency_name
+           FROM job_orders j JOIN tenants t ON t.id = j.tenant_id
+           WHERE j.status = 'open' ORDER BY j.opened_at DESC`);
+
+    const appUrl = process.env.APP_URL ?? 'https://enpower-command-web.onrender.com';
+    const jobs = r.rows as { id: string; client_company: string; title: string; location: string | null; remote: boolean; salary_range: string | null; description: string | null; opened_at: string; agency_name: string }[];
+    const agencyName = jobs[0]?.agency_name ?? 'RecruitCommand';
+
+    const items = jobs.map((j) => {
+      const loc = j.location ?? (j.remote ? 'Remote' : '');
+      const [city = '', state = ''] = loc.split(',').map((s) => s.trim());
+      return [
+        '  <job>',
+        `    <title><![CDATA[${j.title}]]></title>`,
+        `    <date><![CDATA[${new Date(j.opened_at).toUTCString()}]]></date>`,
+        `    <referencenumber><![CDATA[${j.id}]]></referencenumber>`,
+        `    <url><![CDATA[${appUrl}/jobs/${j.id}]]></url>`,
+        `    <company><![CDATA[${j.client_company}]]></company>`,
+        `    <city><![CDATA[${city}]]></city>`,
+        `    <state><![CDATA[${state}]]></state>`,
+        `    <country><![CDATA[US]]></country>`,
+        j.remote ? '    <remotetype><![CDATA[Fully remote]]></remotetype>' : '',
+        j.salary_range ? `    <salary><![CDATA[${j.salary_range}]]></salary>` : '',
+        `    <description><![CDATA[${j.description ?? j.title + ' at ' + j.client_company}]]></description>`,
+        '  </job>',
+      ].filter(Boolean).join('\n');
+    }).join('\n');
+
+    const xml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<source>',
+      `  <publisher>${escapeXml(agencyName)}</publisher>`,
+      `  <publisherurl>${appUrl}</publisherurl>`,
+      `  <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>`,
+      items,
+      '</source>',
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.send(xml);
+  });
+
   app.get("/api/public/jobs", async (_req: Request, res: Response) => {
     const pool = getPool();
     if (!pool) {

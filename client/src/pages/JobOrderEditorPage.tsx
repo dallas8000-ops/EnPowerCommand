@@ -155,6 +155,64 @@ export function JobOrderEditorPage() {
         )}
       </div>
 
+      {!creating && form.status === 'open' && (
+        <div className="form-card" style={{ marginTop: '2rem' }}>
+          <h2 style={{ marginBottom: '0.25rem' }}>Post to Job Boards</h2>
+          <p className="muted small" style={{ marginBottom: '1rem' }}>
+            One click opens the free posting form on each board. Your description is pre-copied — just paste it.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '0.75rem' }}>
+            <a
+              className="btn ghost"
+              href={`https://employers.indeed.com/p/post-job?co=US&l=${encodeURIComponent(form.location ?? '')}&jt=${encodeURIComponent(form.title ?? '')}`}
+              target="_blank" rel="noreferrer"
+            >
+              📌 Post on Indeed (free)
+            </a>
+            <a
+              className="btn ghost"
+              href={`https://www.ziprecruiter.com/jobs/new?title=${encodeURIComponent(form.title ?? '')}&location=${encodeURIComponent(form.location ?? '')}`}
+              target="_blank" rel="noreferrer"
+            >
+              📌 Post on ZipRecruiter
+            </a>
+            <a
+              className="btn ghost"
+              href={`https://www.glassdoor.com/employer/jobListing/jobListingAdd.htm`}
+              target="_blank" rel="noreferrer"
+            >
+              📌 Post on Glassdoor
+            </a>
+            <a
+              className="btn ghost"
+              href={`https://www.google.com/search?q=${encodeURIComponent((form.title ?? '') + ' job posting site')}`}
+              target="_blank" rel="noreferrer"
+            >
+              🔍 Google Jobs (auto via feed)
+            </a>
+          </div>
+          <button
+            className="btn primary small"
+            onClick={() => {
+              const desc = [
+                form.title, form.client_company, form.location,
+                form.salary_range ? `Salary: ${form.salary_range}` : '',
+                '',
+                form.description ?? '',
+              ].filter((v) => v !== undefined && v !== '').join('\n')
+              navigator.clipboard.writeText(desc).catch(() => null)
+            }}
+          >
+            📋 Copy job description
+          </button>
+          <p className="muted small" style={{ marginTop: '0.5rem' }}>
+            Your jobs also appear in the <strong>Indeed XML feed</strong> at{' '}
+            <code style={{ fontSize: '0.78rem' }}>/feed/jobs.xml</code> — submit that URL to Indeed's{' '}
+            <a href="https://indeed.com/publisher" target="_blank" rel="noreferrer">Publisher Program</a> for automatic indexing.
+          </p>
+        </div>
+      )}
+
       {!creating && (
         <div className="form-card" style={{ marginTop: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>

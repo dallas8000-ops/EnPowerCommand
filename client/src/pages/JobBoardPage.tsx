@@ -2,6 +2,28 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getPublicJobs, type PublicJob } from '../api'
 
+function injectJobsJsonLd(jobs: PublicJob[]) {
+  const existing = document.getElementById('jobs-jsonld')
+  if (existing) existing.remove()
+  const script = document.createElement('script')
+  script.id = 'jobs-jsonld'
+  script.type = 'application/ld+json'
+  const appUrl = window.location.origin
+  script.textContent = JSON.stringify(jobs.map((j) => ({
+    '@context': 'https://schema.org/',
+    '@type': 'JobPosting',
+    title: j.title,
+    description: j.description ?? j.title,
+    hiringOrganization: { '@type': 'Organization', name: j.client_company },
+    jobLocation: { '@type': 'Place', address: j.location ?? 'United States' },
+    jobLocationType: j.remote ? 'TELECOMMUTE' : undefined,
+    datePosted: j.opened_at.slice(0, 10),
+    url: `${appUrl}/jobs/${j.id}`,
+    baseSalary: j.salary_range ? { '@type': 'MonetaryAmount', currency: 'USD', value: j.salary_range } : undefined,
+  })))
+  document.head.appendChild(script)
+}
+
 export function JobBoardPage() {
   const [jobs, setJobs] = useState<PublicJob[]>([])
   const [loading, setLoading] = useState(true)
@@ -9,7 +31,7 @@ export function JobBoardPage() {
 
   useEffect(() => {
     getPublicJobs()
-      .then((r) => setJobs(r.jobs))
+      .then((r) => { setJobs(r.jobs); injectJobsJsonLd(r.jobs) })
       .catch(() => setJobs([]))
       .finally(() => setLoading(false))
   }, [])
