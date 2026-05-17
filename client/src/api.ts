@@ -457,6 +457,50 @@ export type CandidateMatch = {
   reason: string
 }
 
+export type SmtpConfig = {
+  host: string
+  port: number
+  secure: boolean
+  user_email: string
+  from_name: string | null
+}
+
+export type EmailLog = {
+  id: string
+  direction: string
+  to_email: string
+  subject: string
+  body: string
+  status: string
+  created_at: string
+  sent_by_email: string | null
+}
+
+export async function getSmtpConfig(): Promise<{ config: SmtpConfig | null }> {
+  const res = await apiFetch('/api/email/smtp')
+  return parseJson(res) as Promise<{ config: SmtpConfig | null }>
+}
+
+export async function saveSmtpConfig(data: { host: string; port: number; secure: boolean; user_email: string; password: string; from_name?: string }): Promise<{ ok: boolean }> {
+  const res = await apiFetch('/api/email/smtp', { method: 'PUT', body: JSON.stringify(data) })
+  return parseJson(res) as Promise<{ ok: boolean }>
+}
+
+export async function testSmtpConfig(): Promise<{ ok: boolean }> {
+  const res = await apiFetch('/api/email/test', { method: 'POST', body: JSON.stringify({}) })
+  return parseJson(res) as Promise<{ ok: boolean }>
+}
+
+export async function sendEmail(data: { to: string; subject: string; body: string; candidate_id?: string; job_order_id?: string }): Promise<{ ok: boolean }> {
+  const res = await apiFetch('/api/email/send', { method: 'POST', body: JSON.stringify(data) })
+  return parseJson(res) as Promise<{ ok: boolean }>
+}
+
+export async function getCandidateEmails(candidateId: string): Promise<{ emails: EmailLog[] }> {
+  const res = await apiFetch(`/api/candidates/${candidateId}/emails`)
+  return parseJson(res) as Promise<{ emails: EmailLog[] }>
+}
+
 export type TeamMember = {
   id: string
   email: string

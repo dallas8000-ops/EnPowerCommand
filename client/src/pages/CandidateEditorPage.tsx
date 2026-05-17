@@ -4,11 +4,14 @@ import {
   createCandidate,
   deleteCandidate,
   getCandidate,
+  getCandidateEmails,
   listCandidateActivities,
   patchCandidate,
   parseResume,
   postCandidateActivity,
+  sendEmail,
   type Candidate,
+  type EmailLog,
   type LeadActivity,
 } from '../api'
 
@@ -28,6 +31,12 @@ export function CandidateEditorPage() {
   const [resumeText, setResumeText] = useState('')
   const [parseBusy, setParseBusy] = useState(false)
   const [parseMsg, setParseMsg] = useState<string | null>(null)
+  const [emails, setEmails] = useState<EmailLog[]>([])
+  const [showCompose, setShowCompose] = useState(false)
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailBody, setEmailBody] = useState('')
+  const [emailBusy, setEmailBusy] = useState(false)
+  const [emailMsg, setEmailMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   async function onParseResume() {
     if (!resumeText.trim()) return
@@ -55,12 +64,28 @@ export function CandidateEditorPage() {
 
   useEffect(() => {
     if (creating || !id) return
-    Promise.all([getCandidate(id), listCandidateActivities(id)]).then(([cr, ar]) => {
+    Promise.all([getCandidate(id), listCandidateActivities(id), getCandidateEmails(id)]).then(([cr, ar, er]) => {
       if (cr.candidate) setForm(cr.candidate)
       setActivities(ar.activities ?? [])
+      setEmails(er.emails ?? [])
       setLoading(false)
     })
   }, [id, creating])
+
+  async function onSendEmail() {
+    if (!id || !form.email || !emailSubject.trim() || !emailBody.trim()) return
+    setEmailBusy(true); setEmailMsg(null)
+    try {
+      await sendEmail({ to: form.email, subject: emailSubject, body: emailBody, candidate_id: id })
+      setEmailMsg({ text: '✓ Email sent and logged.', ok: true })
+      setEmailSubject(''); setEmailBody(''); setShowCompose(false)
+      const er = await getCandidateEmails(id)
+      setEmails(er.emails ?? [])
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to send'
+      setEmailMsg({ text: msg, ok: false })
+    } finally { setEmailBusy(false) }
+  }
 
   function set(field: keyof Candidate, val: string | null) {
     setForm((f) => ({ ...f, [field]: val }))
@@ -189,6 +214,48 @@ export function CandidateEditorPage() {
           </button>
         )}
       </div>
+
+      {!creating && form.email && (
+        <section className="section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h2 style={{ margin: 0 }}>Emails</h2>
+            <button className="btn ghost small" onClick={() => { setShowCompose((v) => !v); setEmailMsg(null) }}>
+              {showCompose ? 'Cancel' : '+ Compose'}
+            </button>
+          </div>
+          {showCompose && (
+            <div className="form-card" style={{ marginBottom: '1rem' }}>
+              <div className="grid-form">
+                <label className="full">
+                  Subject
+                  <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="Subject…" />
+                </label>
+                <label className="full">
+                  Message
+                  <textarea rows={6} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} placeholder={`Email to ${form.email}…`} />
+                </label>
+              </div>
+              {emailMsg && <p className="muted small" style={{ marginTop: '0.5rem', color: emailMsg.ok ? '#22c55e' : '#f87171' }}>{emailMsg.text}</p>}
+              <div className="actions" style={{ marginTop: '0.75rem' }}>
+                <button className="btn primary" onClick={onSendEmail} disabled={emailBusy || !emailSubject.trim() || !emailBody.trim()}>
+                  {emailBusy ? 'Sending…' : `Send to ${form.email}`}
+                </button>
+              </div>
+            </div>
+          )}
+          {emails.length > 0 ? (
+            <ul className="activity-log">
+              {emails.map((e) => (
+                <li key={e.id} className="activity-log__item">
+                  <span className={`tag tag--${e.status === 'sent' ? 'contacted' : 'rejected'}`}>{e.direction}</span>
+                  <span className="activity-log__note"><strong>{e.subject}</strong> — {e.body.slice(0, 80)}{e.body.length > 80 ? '…' : ''}</span>
+                  <span className="activity-log__date">{new Date(e.created_at).toLocaleDateString()}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="muted small">No emails sent yet.</p>}
+        </section>
+      )}
 
       {!creating && (
         <section className="section">
