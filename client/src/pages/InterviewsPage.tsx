@@ -123,8 +123,8 @@ export function InterviewsPage() {
               <input type="number" min={15} max={480} step={15} value={form.duration_minutes} onChange={(e) => setF('duration_minutes', Number(e.target.value))} />
             </label>
             <label className="full">
-              Location / Link
-              <input value={form.location} onChange={(e) => setF('location', e.target.value)} placeholder="Zoom link, office address, phone…" />
+              Client interview location / link
+              <input value={form.location} onChange={(e) => setF('location', e.target.value)} placeholder="Zoom link from client, office address, phone…" />
             </label>
             <label className="full">
               Notes
