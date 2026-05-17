@@ -124,6 +124,18 @@ export function registerPublicRoutes(app: Express): void {
     res.json({ jobs: r.rows });
   });
 
+  app.get("/api/public/jobs/:id", async (req: Request, res: Response) => {
+    const pool = getPool();
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
+    const r = await pool.query(
+      `SELECT id, client_company, title, location, remote, salary_range, description, opened_at
+       FROM job_orders WHERE id = $1 AND status = 'open'`,
+      [req.params.id]
+    );
+    if (r.rowCount === 0) { res.status(404).json({ error: "Job not found" }); return; }
+    res.json({ job: r.rows[0] });
+  });
+
   app.post("/api/public/jobs/submit", async (req: Request, res: Response) => {
     const parsed = submitSchema.safeParse(req.body);
     if (!parsed.success) {

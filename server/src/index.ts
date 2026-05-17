@@ -22,6 +22,11 @@ import { registerInterviewRoutes } from "./routes/interviews.js";
 import { registerTeamRoutes } from "./routes/team.js";
 import { registerEmailRoutes } from "./routes/email.js";
 import { registerCalendarRoutes } from "./routes/calendar.js";
+import { registerApplicationRoutes } from "./routes/applications.js";
+import { registerClientPortalRoutes } from "./routes/client-portal.js";
+import { registerAiToolRoutes } from "./routes/ai-tools.js";
+import { registerExportRoutes as registerCsvExportRoutes } from "./routes/exports.js";
+import { registerBlogRoutes } from "./routes/blog.js";
 import { registerProfileRoutes } from "./routes/profile.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerRegisterRoutes } from "./routes/register.js";
@@ -76,6 +81,11 @@ registerInterviewRoutes(app);
 registerTeamRoutes(app);
 registerEmailRoutes(app);
 registerCalendarRoutes(app);
+registerApplicationRoutes(app);
+registerClientPortalRoutes(app);
+registerAiToolRoutes(app);
+registerCsvExportRoutes(app);
+registerBlogRoutes(app);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

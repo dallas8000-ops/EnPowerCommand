@@ -90,8 +90,8 @@ export function JobBoardPage() {
                   {j.salary_range && <span>💰 {j.salary_range}</span>}
                 </p>
               </div>
-              <Link to="/post-job" className="btn ghost" style={{ flexShrink: 0, fontSize: '0.82rem' }}>
-                Submit candidate
+              <Link to={`/jobs/${j.id}`} className="btn primary" style={{ flexShrink: 0, fontSize: '0.82rem' }}>
+                Apply now
               </Link>
             </div>
             {j.description && (

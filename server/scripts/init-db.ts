@@ -28,12 +28,18 @@ async function main() {
   const schemaV4Path = join(__dirname, "..", "sql", "schema-v4.sql");
   const schemaV5Path = join(__dirname, "..", "sql", "schema-v5.sql");
   const schemaV6Path = join(__dirname, "..", "sql", "schema-v6.sql");
+  const schemaV7Path = join(__dirname, "..", "sql", "schema-v7.sql");
+  const schemaV8Path = join(__dirname, "..", "sql", "schema-v8.sql");
+  const schemaV9Path = join(__dirname, "..", "sql", "schema-v9.sql");
   const sql = readFileSync(schemaPath, "utf8");
   const sqlV2 = readFileSync(schemaV2Path, "utf8");
   const sqlV3 = readFileSync(schemaV3Path, "utf8");
   const sqlV4 = readFileSync(schemaV4Path, "utf8");
   const sqlV5 = readFileSync(schemaV5Path, "utf8");
   const sqlV6 = readFileSync(schemaV6Path, "utf8");
+  const sqlV7 = readFileSync(schemaV7Path, "utf8");
+  const sqlV8 = readFileSync(schemaV8Path, "utf8");
+  const sqlV9 = readFileSync(schemaV9Path, "utf8");
 
   const client = new pg.Client({
     connectionString: url,
@@ -53,6 +59,12 @@ async function main() {
     console.log("Schema v5 (team invites) applied.");
     await client.query(sqlV6);
     console.log("Schema v6 (email logs) applied.");
+    await client.query(sqlV7);
+    console.log("Schema v7 (applications, client portal, email templates, webhooks) applied.");
+    await client.query(sqlV8);
+    console.log("Schema v8 (candidate share_public) applied.");
+    await client.query(sqlV9);
+    console.log("Schema v9 (blog posts, extended profile) applied.");
     await client.query(`
       INSERT INTO tenants (id, name, subscription_status) VALUES
         ('00000000-0000-0000-0000-000000000000', 'Dev Tenant', 'active')

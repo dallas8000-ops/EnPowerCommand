@@ -780,6 +780,95 @@ export async function getPublicJobs(): Promise<{ jobs: PublicJob[] }> {
   return parseJson(res) as Promise<{ jobs: PublicJob[] }>
 }
 
+export async function getPublicJobById(id: string): Promise<{ job: PublicJob }> {
+  const res = await fetch(apiUrl(`/api/public/jobs/${id}`))
+  return parseJson(res) as Promise<{ job: PublicJob }>
+}
+
+export type Application = {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  location: string | null
+  resume_text: string | null
+  cover_letter: string | null
+  status: string
+  created_at: string
+  candidate_id: string | null
+  job_order_id: string
+  job_title: string
+  client_company: string
+}
+
+export async function getApplications(jobId?: string): Promise<{ applications: Application[] }> {
+  const url = jobId ? `/api/applications?job_id=${jobId}` : '/api/applications'
+  const res = await apiFetch(url)
+  return parseJson(res) as Promise<{ applications: Application[] }>
+}
+
+export async function patchApplication(id: string, status: string): Promise<{ application: { id: string; status: string } }> {
+  const res = await apiFetch(`/api/applications/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) })
+  return parseJson(res) as Promise<{ application: { id: string; status: string } }>
+}
+
+export async function clientLogin(email: string, password: string): Promise<{ token: string; name: string; email: string; company: string | null }> {
+  const res = await fetch(apiUrl('/api/client/login'), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  return parseJson(res) as Promise<{ token: string; name: string; email: string; company: string | null }>
+}
+
+export type ClientJob = PublicJob & { status: string; application_count: number; candidate_count: number }
+
+export async function getClientJobs(token: string): Promise<{ jobs: ClientJob[] }> {
+  const res = await fetch(apiUrl('/api/client/jobs'), { headers: { Authorization: `Bearer ${token}` } })
+  return parseJson(res) as Promise<{ jobs: ClientJob[] }>
+}
+
+export async function getClientJobCandidates(token: string, jobId: string): Promise<{ candidates: { id: string; name: string; title: string | null; location: string | null; skills: string | null; stage: string; notes: string | null; submitted_at: string }[] }> {
+  const res = await fetch(apiUrl(`/api/client/jobs/${jobId}/candidates`), { headers: { Authorization: `Bearer ${token}` } })
+  return parseJson(res) as Promise<{ candidates: { id: string; name: string; title: string | null; location: string | null; skills: string | null; stage: string; notes: string | null; submitted_at: string }[] }>
+}
+
+export type EmailTemplate = { id: string; name: string; subject: string; body: string; updated_at: string }
+
+export async function getEmailTemplates(): Promise<{ templates: EmailTemplate[] }> {
+  const res = await apiFetch('/api/email-templates')
+  return parseJson(res) as Promise<{ templates: EmailTemplate[] }>
+}
+
+export async function createEmailTemplate(data: { name: string; subject: string; body: string }): Promise<{ template: EmailTemplate }> {
+  const res = await apiFetch('/api/email-templates', { method: 'POST', body: JSON.stringify(data) })
+  return parseJson(res) as Promise<{ template: EmailTemplate }>
+}
+
+export async function updateEmailTemplate(id: string, data: Partial<{ name: string; subject: string; body: string }>): Promise<{ template: EmailTemplate }> {
+  const res = await apiFetch(`/api/email-templates/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return parseJson(res) as Promise<{ template: EmailTemplate }>
+}
+
+export async function deleteEmailTemplate(id: string): Promise<void> {
+  await apiFetch(`/api/email-templates/${id}`, { method: 'DELETE' })
+}
+
+export type WebhookEndpoint = { id: string; url: string; events: string[]; active: boolean; created_at: string }
+
+export async function getWebhooks(): Promise<{ webhooks: WebhookEndpoint[] }> {
+  const res = await apiFetch('/api/webhooks')
+  return parseJson(res) as Promise<{ webhooks: WebhookEndpoint[] }>
+}
+
+export async function createWebhook(data: { url: string; events: string[] }): Promise<{ webhook: WebhookEndpoint & { secret: string } }> {
+  const res = await apiFetch('/api/webhooks', { method: 'POST', body: JSON.stringify(data) })
+  return parseJson(res) as Promise<{ webhook: WebhookEndpoint & { secret: string } }>
+}
+
+export async function deleteWebhook(id: string): Promise<void> {
+  await apiFetch(`/api/webhooks/${id}`, { method: 'DELETE' })
+}
+
 export async function submitPublicJob(data: {
   client_company: string
   title: string

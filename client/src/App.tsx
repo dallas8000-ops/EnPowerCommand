@@ -24,6 +24,17 @@ import { InterviewsPage } from './pages/InterviewsPage'
 import { TeamPage } from './pages/TeamPage'
 import { AcceptInvitePage } from './pages/AcceptInvitePage'
 import { AIRankingsPage } from './pages/AIRankingsPage'
+import { ApplicationsPage } from './pages/ApplicationsPage'
+import { ClientPortalPage } from './pages/ClientPortalPage'
+import { EmailTemplatesPage } from './pages/EmailTemplatesPage'
+import { JobApplyPage } from './pages/JobApplyPage'
+import { AiToolsPage } from './pages/AiToolsPage'
+import { BulkImportPage } from './pages/BulkImportPage'
+import { ReportsPage } from './pages/ReportsPage'
+import { WebhooksPage } from './pages/WebhooksPage'
+import { PublicAboutPage } from './pages/PublicAboutPage'
+import { PublicBlogPage, PublicBlogPostPage } from './pages/PublicBlogPage'
+import { BlogEditorPage } from './pages/BlogEditorPage'
 
 function ProtectedLayout() {
   const [gate, setGate] = useState<'loading' | 'login' | 'app'>('loading')
@@ -67,8 +78,14 @@ function ProtectedLayout() {
           <NavLink to="/profile">Profile</NavLink>
           <NavLink to="/team">Team</NavLink>
           <NavLink to="/interviews">Interviews</NavLink>
+          <NavLink to="/applications">Applications</NavLink>
           <NavLink to="/ai/rankings">AI Rankings</NavLink>
           <NavLink to="/ai/outreach">AI Outreach</NavLink>
+          <NavLink to="/email-templates">Templates</NavLink>
+          <NavLink to="/reports">Reports</NavLink>
+          <NavLink to="/webhooks">Webhooks</NavLink>
+          <NavLink to="/ai/tools">AI Tools</NavLink>
+          <NavLink to="/blog-editor">Blog</NavLink>
           <NavLink to="/billing" title={meta.tenant_name ?? 'Billing'}>Billing</NavLink>
           {getToken() && (
             <button
@@ -97,6 +114,11 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/jobs" element={<JobBoardPage />} />
+      <Route path="/jobs/:id" element={<JobApplyPage />} />
+      <Route path="/client" element={<ClientPortalPage />} />
+      <Route path="/about" element={<PublicAboutPage />} />
+      <Route path="/blog" element={<PublicBlogPage />} />
+      <Route path="/blog/:slug" element={<PublicBlogPostPage />} />
       <Route path="/post-job" element={<PostJobPage />} />
       <Route path="/invite/:token" element={<AcceptInvitePage />} />
       <Route element={<ProtectedLayout />}>
@@ -116,6 +138,13 @@ function App() {
         <Route path="/ai/rankings" element={<AIRankingsPage />} />
         <Route path="/interviews" element={<InterviewsPage />} />
         <Route path="/team" element={<TeamPage />} />
+        <Route path="/applications" element={<ApplicationsPage />} />
+        <Route path="/email-templates" element={<EmailTemplatesPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/webhooks" element={<WebhooksPage />} />
+        <Route path="/ai/tools" element={<AiToolsPage />} />
+        <Route path="/candidates/bulk-import" element={<BulkImportPage />} />
+        <Route path="/blog-editor" element={<BlogEditorPage />} />
       </Route>
     </Routes>
   )
