@@ -457,6 +457,47 @@ export type CandidateMatch = {
   reason: string
 }
 
+export type Interview = {
+  id: string
+  scheduled_at: string
+  duration_minutes: number
+  location: string | null
+  notes: string | null
+  status: string
+  candidate_id: string
+  candidate_name: string
+  candidate_email: string | null
+  job_order_id: string
+  job_title: string
+  client_company: string
+  created_at: string
+}
+
+export async function listInterviews(upcoming?: boolean): Promise<{ interviews: Interview[] }> {
+  const qs = upcoming ? '?upcoming=true' : ''
+  const res = await apiFetch(`/api/interviews${qs}`)
+  return parseJson(res) as Promise<{ interviews: Interview[] }>
+}
+
+export async function createInterview(data: {
+  candidate_id: string; job_order_id: string; scheduled_at: string
+  duration_minutes?: number; location?: string; notes?: string
+}): Promise<{ interview: Interview }> {
+  const res = await apiFetch('/api/interviews', { method: 'POST', body: JSON.stringify(data) })
+  return parseJson(res) as Promise<{ interview: Interview }>
+}
+
+export async function patchInterview(id: string, data: Partial<{
+  scheduled_at: string; duration_minutes: number; location: string; notes: string; status: string
+}>): Promise<{ interview: Interview }> {
+  const res = await apiFetch(`/api/interviews/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  return parseJson(res) as Promise<{ interview: Interview }>
+}
+
+export async function deleteInterview(id: string): Promise<void> {
+  await apiFetch(`/api/interviews/${id}`, { method: 'DELETE' })
+}
+
 export async function draftCandidateOutreach(params: {
   candidate_id: string
   job_order_id: string

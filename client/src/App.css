@@ -935,6 +935,47 @@ label.checkbox-row {
   font-variant-numeric: tabular-nums;
 }
 
+/* Interview cards */
+.interview-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.interview-card {
+  background: var(--surface-2, rgba(255,255,255,0.04));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+}
+
+.interview-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.25rem;
+}
+
+.interview-card__time {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.interview-card__status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.interview-card__who {
+  font-size: 0.9rem;
+  margin: 0 0 0.35rem;
+}
+
+.interview-card__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
 /* Candidate match cards */
 .match-list {
   display: flex;
