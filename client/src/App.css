@@ -941,6 +941,27 @@ label.checkbox-row {
 .team-table td { padding: 0.55rem 0.35rem; font-size: 0.9rem; vertical-align: middle; }
 .team-table select { font-size: 0.85rem; padding: 0.2rem 0.4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
 
+/* AI Ranking cards */
+.ranking-card {
+  display: flex;
+  gap: 1rem;
+  background: var(--surface-2, rgba(255,255,255,0.04));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+.ranking-card__rank {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 2rem;
+  padding-top: 0.1rem;
+}
+.ranking-card__body { flex: 1; }
+.ranking-card__header { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.ranking-card__name { font-weight: 600; }
+.ranking-card__reason { font-size: 0.88rem; color: var(--text-muted); margin: 0.3rem 0 0; }
+
 /* Interview card calendar row */
 .interview-card__calendar {
   display: flex;

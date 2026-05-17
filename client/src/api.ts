@@ -457,6 +457,20 @@ export type CandidateMatch = {
   reason: string
 }
 
+export type JobMatch = {
+  job_id: string
+  title: string
+  client_company: string
+  location: string | null
+  score: number
+  reason: string
+}
+
+export async function getCandidateJobMatches(candidateId: string): Promise<{ matches: JobMatch[]; source: string }> {
+  const res = await apiFetch(`/api/candidates/${candidateId}/job-matches`)
+  return parseJson(res) as Promise<{ matches: JobMatch[]; source: string }>
+}
+
 export type SmtpConfig = {
   host: string
   port: number

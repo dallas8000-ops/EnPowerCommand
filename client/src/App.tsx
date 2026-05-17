@@ -23,6 +23,7 @@ import { CandidateOutreachPage } from './pages/CandidateOutreachPage'
 import { InterviewsPage } from './pages/InterviewsPage'
 import { TeamPage } from './pages/TeamPage'
 import { AcceptInvitePage } from './pages/AcceptInvitePage'
+import { AIRankingsPage } from './pages/AIRankingsPage'
 
 function ProtectedLayout() {
   const [gate, setGate] = useState<'loading' | 'login' | 'app'>('loading')
@@ -66,7 +67,8 @@ function ProtectedLayout() {
           <NavLink to="/profile">Profile</NavLink>
           <NavLink to="/team">Team</NavLink>
           <NavLink to="/interviews">Interviews</NavLink>
-          <NavLink to="/ai/outreach">AI Tools</NavLink>
+          <NavLink to="/ai/rankings">AI Rankings</NavLink>
+          <NavLink to="/ai/outreach">AI Outreach</NavLink>
           <NavLink to="/billing" title={meta.tenant_name ?? 'Billing'}>Billing</NavLink>
           {getToken() && (
             <button
@@ -111,6 +113,7 @@ function App() {
         <Route path="/billing" element={<BillingPage />} />
         <Route path="/ai/jd-generator" element={<JdGeneratorPage />} />
         <Route path="/ai/outreach" element={<CandidateOutreachPage />} />
+        <Route path="/ai/rankings" element={<AIRankingsPage />} />
         <Route path="/interviews" element={<InterviewsPage />} />
         <Route path="/team" element={<TeamPage />} />
       </Route>
