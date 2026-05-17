@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { createJobOrder, deleteJobOrder, generateScreeningQuestions, getJobOrder, patchJobOrder, type JobOrder } from '../api'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { createJobOrder, deleteJobOrder, generateScreeningQuestions, getJobOrder, getJobOrderMatches, patchJobOrder, type CandidateMatch, type JobOrder } from '../api'
 
 export function JobOrderEditorPage() {
   const { id } = useParams<{ id: string }>()
@@ -16,6 +16,23 @@ export function JobOrderEditorPage() {
   const [qBusy, setQBusy] = useState(false)
   const [qSource, setQSource] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [matches, setMatches] = useState<CandidateMatch[]>([])
+  const [matchBusy, setMatchBusy] = useState(false)
+  const [matchNote, setMatchNote] = useState<string | null>(null)
+
+  async function onFindMatches() {
+    if (!id || creating) return
+    setMatchBusy(true)
+    setMatches([])
+    setMatchNote(null)
+    try {
+      const r = await getJobOrderMatches(id)
+      setMatches(r.matches)
+      if (r.note) setMatchNote(r.note)
+    } finally {
+      setMatchBusy(false)
+    }
+  }
 
   async function onGenerateQuestions() {
     if (!id || creating) return
@@ -161,6 +178,36 @@ export function JobOrderEditorPage() {
           )}
           {questions.length === 0 && !qBusy && (
             <p className="muted small">Click Generate to create role-specific screening questions for this job order.</p>
+          )}
+        </div>
+      )}
+
+      {!creating && (
+        <div className="form-card" style={{ marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0 }}>AI Candidate Matching</h2>
+            <button className="btn primary small" onClick={onFindMatches} disabled={matchBusy}>
+              {matchBusy ? 'Matching…' : matches.length ? 'Re-match' : '✦ Find matches'}
+            </button>
+          </div>
+          {matchNote && <p className="muted small" style={{ marginBottom: '0.75rem' }}>{matchNote}</p>}
+          {matches.length > 0 && (
+            <div className="match-list">
+              {matches.map((m) => (
+                <div key={m.candidate_id} className="match-card">
+                  <div className="match-card__header">
+                    <Link to={`/candidates/${m.candidate_id}`} className="match-card__name">{m.name}</Link>
+                    <span className={`match-score match-score--${m.score >= 75 ? 'high' : m.score >= 50 ? 'mid' : 'low'}`}>{m.score}%</span>
+                  </div>
+                  {m.title && <p className="muted small" style={{ margin: '0.15rem 0' }}>{m.title}{m.location ? ` · ${m.location}` : ''}</p>}
+                  {m.skills && <p className="muted small" style={{ margin: '0.15rem 0', fontSize: '0.8rem' }}>{m.skills}</p>}
+                  <p className="match-card__reason">{m.reason}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {matches.length === 0 && !matchBusy && (
+            <p className="muted small">Click "Find matches" to rank your active candidates against this job order.</p>
           )}
         </div>
       )}

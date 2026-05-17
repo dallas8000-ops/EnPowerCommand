@@ -869,6 +869,54 @@ label.checkbox-row {
   color: var(--text);
 }
 
+/* Candidate match cards */
+.match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.match-card {
+  background: var(--surface-2, rgba(255,255,255,0.04));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.match-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+
+.match-card__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.match-card__name:hover { text-decoration: underline; }
+
+.match-score {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99px;
+}
+
+.match-score--high { background: rgba(34,197,94,0.15); color: #22c55e; }
+.match-score--mid  { background: rgba(234,179,8,0.15);  color: #eab308; }
+.match-score--low  { background: rgba(239,68,68,0.15);  color: #ef4444; }
+
+.match-card__reason {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0.3rem 0 0;
+  font-style: italic;
+}
+
 /* Review inbox */
 .review-inbox {
   background: color-mix(in srgb, var(--accent) 6%, var(--surface));

@@ -6,6 +6,7 @@ import {
   getCandidate,
   listCandidateActivities,
   patchCandidate,
+  parseResume,
   postCandidateActivity,
   type Candidate,
   type LeadActivity,
@@ -24,6 +25,33 @@ export function CandidateEditorPage() {
   const [loading, setLoading] = useState(!creating)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [resumeText, setResumeText] = useState('')
+  const [parseBusy, setParseBusy] = useState(false)
+  const [parseMsg, setParseMsg] = useState<string | null>(null)
+
+  async function onParseResume() {
+    if (!resumeText.trim()) return
+    setParseBusy(true)
+    setParseMsg(null)
+    try {
+      const r = await parseResume(resumeText)
+      const c = r.candidate
+      setForm((f) => ({
+        ...f,
+        name: c.name || f.name,
+        email: c.email ?? f.email,
+        phone: c.phone ?? f.phone,
+        title: c.title ?? f.title,
+        location: c.location ?? f.location,
+        skills: c.skills ?? f.skills,
+        notes: c.notes ?? f.notes,
+      }))
+      setParseMsg(r.source === 'ai' ? '✓ Fields populated from resume.' : '✓ Basic info extracted — fill in remaining fields.')
+      setResumeText('')
+    } finally {
+      setParseBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (creating || !id) return
@@ -84,6 +112,26 @@ export function CandidateEditorPage() {
 
       {error && <div className="banner error">{error}</div>}
       {saved && <div className="banner success">Changes saved.</div>}
+
+      {creating && (
+        <div className="form-card" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h2 style={{ margin: 0 }}>✦ Parse resume with AI</h2>
+            <span className="muted small">Optional — paste to auto-fill</span>
+          </div>
+          {parseMsg && <div className="banner success" style={{ marginBottom: '0.75rem' }}>{parseMsg}</div>}
+          <textarea
+            rows={6}
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            placeholder="Paste the candidate's resume text here…"
+            style={{ width: '100%', marginBottom: '0.75rem' }}
+          />
+          <button className="btn primary small" onClick={onParseResume} disabled={parseBusy || !resumeText.trim()}>
+            {parseBusy ? 'Parsing…' : 'Parse resume'}
+          </button>
+        </div>
+      )}
 
       <div className="form-card">
         <h2>Contact info</h2>

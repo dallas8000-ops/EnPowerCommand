@@ -14,6 +14,9 @@ import { registerOutreachRoutes } from "./routes/outreach.js";
 import { registerPipelineRoutes } from "./routes/pipeline.js";
 import { registerPostingRoutes } from "./routes/posting.js";
 import { registerScreeningRoutes } from "./routes/screening.js";
+import { registerResumeParseRoutes } from "./routes/resume-parse.js";
+import { registerMatchingRoutes } from "./routes/matching.js";
+import { registerJdGeneratorRoutes } from "./routes/jd-generator.js";
 import { registerProfileRoutes } from "./routes/profile.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerRegisterRoutes } from "./routes/register.js";
@@ -60,6 +63,9 @@ registerCandidateRoutes(app);
 registerJobOrderRoutes(app);
 registerPipelineRoutes(app);
 registerScreeningRoutes(app);
+registerResumeParseRoutes(app);
+registerMatchingRoutes(app);
+registerJdGeneratorRoutes(app);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

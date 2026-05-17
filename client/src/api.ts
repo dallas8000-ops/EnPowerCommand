@@ -403,6 +403,46 @@ export type JobOrder = {
   updated_at: string
 }
 
+export type ParsedCandidateResult = {
+  name: string
+  email: string | null
+  phone: string | null
+  title: string | null
+  location: string | null
+  skills: string | null
+  notes: string | null
+}
+
+export async function parseResume(resumeText: string): Promise<{ candidate: ParsedCandidateResult; source: string }> {
+  const res = await apiFetch('/api/candidates/parse-resume', {
+    method: 'POST',
+    body: JSON.stringify({ resume_text: resumeText }),
+  })
+  return parseJson(res) as Promise<{ candidate: ParsedCandidateResult; source: string }>
+}
+
+export type CandidateMatch = {
+  candidate_id: string
+  name: string
+  title: string | null
+  skills: string | null
+  location: string | null
+  score: number
+  reason: string
+}
+
+export async function generateJobDescription(params: {
+  title: string; company: string; location?: string; remote?: boolean; salary_range?: string; notes?: string
+}): Promise<{ description: string; source: string }> {
+  const res = await apiFetch('/api/ai/generate-jd', { method: 'POST', body: JSON.stringify(params) })
+  return parseJson(res) as Promise<{ description: string; source: string }>
+}
+
+export async function getJobOrderMatches(jobOrderId: string): Promise<{ matches: CandidateMatch[]; source?: string; note?: string }> {
+  const res = await apiFetch(`/api/job-orders/${jobOrderId}/matches`)
+  return parseJson(res) as Promise<{ matches: CandidateMatch[]; source?: string; note?: string }>
+}
+
 export async function generateScreeningQuestions(jobOrderId: string): Promise<{ questions: string[]; source: string }> {
   const res = await apiFetch(`/api/job-orders/${jobOrderId}/screening-questions`, { method: 'POST' })
   return parseJson(res) as Promise<{ questions: string[]; source: string }>
