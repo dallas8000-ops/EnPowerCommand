@@ -71,17 +71,22 @@ export function registerBillingRoutes(app: Express): void {
 
     const origin = req.headers.origin ?? process.env.CORS_ORIGIN ?? "http://localhost:5173";
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      metadata: { tenant_id: req.tenantId!, user_id: req.userId! },
-      customer_email: req.userEmail,
-      success_url: `${origin}/billing?session_id={CHECKOUT_SESSION_ID}&upgraded=1`,
-      cancel_url: `${origin}/billing?canceled=1`,
-    });
-
-    res.json({ checkout_url: session.url });
+    try {
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        payment_method_types: ["card"],
+        line_items: [{ price: priceId, quantity: 1 }],
+        metadata: { tenant_id: req.tenantId!, user_id: req.userId! },
+        customer_email: req.userEmail,
+        success_url: `${origin}/billing?session_id={CHECKOUT_SESSION_ID}&upgraded=1`,
+        cancel_url: `${origin}/billing?canceled=1`,
+      });
+      res.json({ checkout_url: session.url });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Stripe error";
+      console.error("Checkout error:", msg);
+      res.status(500).json({ error: msg });
+    }
   });
 
   app.post("/api/billing/portal", requireAuth, async (req: Request, res: Response) => {
