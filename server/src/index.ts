@@ -39,12 +39,12 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.use("/api/billing/webhook", express.raw({ type: "*/*" }));
+app.use(express.json({ limit: "2mb" }));
+
 registerAuthRoutes(app);
 registerRegisterRoutes(app);
 registerPublicRoutes(app);
-
-app.use("/api/billing/webhook", express.raw({ type: "*/*" }));
-app.use(express.json({ limit: "2mb" }));
 
 app.use(requireAuth);
 registerBillingRoutes(app);
