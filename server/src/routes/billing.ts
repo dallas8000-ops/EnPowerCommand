@@ -5,9 +5,9 @@ import { requireAuth } from "../middleware/auth.js";
 import { signTenantToken } from "./auth.js";
 
 function getStripe(): Stripe | null {
-  const key = process.env.STRIPE_SECRET_KEY;
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
   if (!key) return null;
-  return new Stripe(key);
+  return new Stripe(key, { maxNetworkRetries: 0, timeout: 15000 });
 }
 
 export function registerBillingRoutes(app: Express): void {
@@ -60,7 +60,7 @@ export function registerBillingRoutes(app: Express): void {
       return;
     }
 
-    const priceId = process.env.STRIPE_PRICE_ID;
+    const priceId = process.env.STRIPE_PRICE_ID?.trim();
     if (!priceId) {
       res.status(503).json({
         error: "Stripe price not configured",
