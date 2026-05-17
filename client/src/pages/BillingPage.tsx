@@ -4,6 +4,7 @@ import {
   createBillingPortal,
   createCheckoutSession,
   getBillingStatus,
+  verifyCheckoutSession,
   refreshToken,
   type BillingStatus,
 } from '../api'
@@ -30,17 +31,18 @@ export function BillingPage() {
 
   useEffect(() => {
     const upgraded = searchParams.get('upgraded')
-    const delay = upgraded ? 2500 : 0
-    if (upgraded) {
-      refreshToken().then((r) => {
-        if (r.token) setToken(r.token, meta)
-      })
+    const sessionId = searchParams.get('session_id')
+    if (upgraded && sessionId) {
+      verifyCheckoutSession(sessionId)
+        .then(() => refreshToken())
+        .then((r) => { if (r.token) setToken(r.token, meta) })
+        .catch(() => {})
+        .finally(() => {
+          getBillingStatus().then(setStatus).finally(() => setLoading(false))
+        })
+    } else {
+      getBillingStatus().then(setStatus).finally(() => setLoading(false))
     }
-    setTimeout(() => {
-      getBillingStatus()
-        .then(setStatus)
-        .finally(() => setLoading(false))
-    }, delay)
   }, [])
 
   async function handleUpgrade() {

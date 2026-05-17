@@ -472,6 +472,11 @@ export async function getBillingStatus(): Promise<BillingStatus> {
   return parseJson(res) as Promise<BillingStatus>
 }
 
+export async function verifyCheckoutSession(sessionId: string): Promise<{ plan: string }> {
+  const res = await apiFetch(`/api/billing/verify-session?session_id=${encodeURIComponent(sessionId)}`)
+  return parseJson(res) as Promise<{ plan: string }>
+}
+
 export async function createCheckoutSession(): Promise<{ checkout_url?: string; error?: string }> {
   const res = await apiFetch('/api/billing/checkout', { method: 'POST' })
   return parseJson(res) as Promise<{ checkout_url?: string; error?: string }>

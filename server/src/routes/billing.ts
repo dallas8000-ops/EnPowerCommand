@@ -89,6 +89,36 @@ export function registerBillingRoutes(app: Express): void {
     }
   });
 
+  app.get("/api/billing/verify-session", requireAuth, async (req: Request, res: Response) => {
+    const stripe = getStripe();
+    if (!stripe) { res.status(503).json({ error: "Stripe not configured" }); return; }
+    const pool = getPool();
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
+    const sessionId = req.query.session_id as string;
+    if (!sessionId) { res.status(400).json({ error: "session_id required" }); return; }
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ["subscription"] });
+      if (session.payment_status === "paid" || session.status === "complete") {
+        const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+        const sub = session.subscription as Stripe.Subscription | null;
+        const subscriptionId = sub?.id ?? null;
+        await pool.query(
+          `UPDATE tenants SET subscription_status = 'active',
+           stripe_customer_id = COALESCE($2, stripe_customer_id),
+           stripe_subscription_id = COALESCE($3, stripe_subscription_id)
+           WHERE id = $1`,
+          [req.tenantId, customerId ?? null, subscriptionId]
+        );
+        res.json({ plan: "active" });
+      } else {
+        res.json({ plan: "pending" });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Stripe error";
+      res.status(500).json({ error: msg });
+    }
+  });
+
   app.post("/api/billing/portal", requireAuth, async (req: Request, res: Response) => {
     const stripe = getStripe();
     if (!stripe) {
