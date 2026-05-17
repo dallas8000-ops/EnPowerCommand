@@ -2,6 +2,27 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { getPool } from "../db.js";
 
+async function notifyNewSubmission(job: { client_company: string; title: string; client_contact_name: string; client_contact_email: string }) {
+  const to = process.env.NOTIFY_EMAIL;
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!to || !apiKey) return;
+  try {
+    await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: to },
+        subject: `New job submission: ${job.title} @ ${job.client_company}`,
+        content: [{ type: "text/plain", value:
+          `New client submission received:\n\nRole: ${job.title}\nCompany: ${job.client_company}\nContact: ${job.client_contact_name} <${job.client_contact_email}>\n\nLog in to review and approve.` }],
+      }),
+    });
+  } catch (e) {
+    console.error("Email notification failed:", e);
+  }
+}
+
 function getPublicTenantId(): string | null {
   return process.env.PUBLIC_TENANT_ID ?? null;
 }
@@ -81,6 +102,12 @@ export function registerPublicRoutes(app: Express): void {
       ]
     );
 
+    void notifyNewSubmission({
+      client_company: b.client_company,
+      title: b.title,
+      client_contact_name: b.client_contact_name,
+      client_contact_email: b.client_contact_email,
+    });
     res.status(201).json({ job: r.rows[0], message: "Submission received. We will be in touch shortly." });
   });
 

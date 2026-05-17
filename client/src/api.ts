@@ -394,6 +394,10 @@ export type JobOrder = {
   salary_range: string | null
   description: string | null
   status: string
+  source: string | null
+  client_contact_name: string | null
+  client_contact_email: string | null
+  client_notes: string | null
   opened_at: string
   created_at: string
   updated_at: string

@@ -817,6 +817,66 @@ label.checkbox-row {
 }
 
 /* Responsive nav overflow */
+/* Review inbox */
+.review-inbox {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.review-inbox__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 1rem;
+}
+
+.review-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.review-card:last-child { margin-bottom: 0; }
+
+.review-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.review-card__role {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 0.25rem;
+}
+
+.review-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Danger button */
+.btn.danger {
+  background: #c0392b;
+  color: #fff;
+  border-color: #c0392b;
+}
+.btn.danger:hover { background: #a93226; }
+
+/* Small button modifier */
+.btn.small {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.82rem;
+}
+
 @media (max-width: 600px) {
   .nav {
     gap: 0.6rem;

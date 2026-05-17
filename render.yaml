@@ -43,6 +43,10 @@ services:
         sync: false
       - key: PUBLIC_TENANT_ID
         sync: false
+      - key: NOTIFY_EMAIL
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
 
   # Static sites on Render do not support `region` (see Blueprint validation).
   - type: web

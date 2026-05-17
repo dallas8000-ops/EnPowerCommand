@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listJobOrders, type JobOrder } from '../api'
+import { listJobOrders, patchJobOrder, type JobOrder } from '../api'
 
 const STATUSES = ['open', 'on_hold', 'filled', 'canceled'] as const
 
@@ -8,6 +8,17 @@ export function JobOrdersPage() {
   const [orders, setOrders] = useState<JobOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('open')
+  const [acting, setActing] = useState<string | null>(null)
+
+  async function reviewAction(id: string, status: 'open' | 'canceled') {
+    setActing(id)
+    try {
+      await patchJobOrder(id, { status })
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status } : o))
+    } finally {
+      setActing(null)
+    }
+  }
 
   useEffect(() => {
     listJobOrders()
@@ -18,6 +29,7 @@ export function JobOrdersPage() {
   const filtered = filter === 'all' ? orders : orders.filter((o) => o.status === filter)
 
   const counts = Object.fromEntries(STATUSES.map((s) => [s, orders.filter((o) => o.status === s).length]))
+  const pending = orders.filter((o) => o.status === 'pending')
 
   return (
     <div className="page">
@@ -25,6 +37,48 @@ export function JobOrdersPage() {
         <h1>Job Orders</h1>
         <Link className="btn primary" to="/job-orders/new">+ New order</Link>
       </div>
+
+      {pending.length > 0 && (
+        <div className="review-inbox">
+          <h2 className="review-inbox__title">📥 Client submissions — pending review ({pending.length})</h2>
+          {pending.map((o) => (
+            <div key={o.id} className="review-card">
+              <div className="review-card__top">
+                <div>
+                  <p className="review-card__role">{o.title} <span className="muted">@ {o.client_company}</span></p>
+                  <p className="muted small">
+                    {o.location && <span>📍 {o.location} </span>}
+                    {o.remote && <span>🌐 Remote </span>}
+                    {o.salary_range && <span>💰 {o.salary_range}</span>}
+                  </p>
+                  {o.client_contact_name && (
+                    <p className="muted small" style={{ marginTop: '0.3rem' }}>
+                      Contact: <strong>{o.client_contact_name}</strong> — <a href={`mailto:${o.client_contact_email}`}>{o.client_contact_email}</a>
+                    </p>
+                  )}
+                  {o.client_notes && <p className="muted small" style={{ marginTop: '0.25rem' }}>Notes: {o.client_notes}</p>}
+                </div>
+                <div className="review-card__actions">
+                  <button
+                    className="btn primary small"
+                    disabled={acting === o.id}
+                    onClick={() => reviewAction(o.id, 'open')}
+                  >
+                    ✓ Approve
+                  </button>
+                  <button
+                    className="btn danger small"
+                    disabled={acting === o.id}
+                    onClick={() => reviewAction(o.id, 'canceled')}
+                  >
+                    ✕ Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="stat-row">
         <div className="stat-card">

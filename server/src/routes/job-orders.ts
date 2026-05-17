@@ -9,7 +9,7 @@ const jobOrderBody = z.object({
   remote: z.boolean().optional(),
   salary_range: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
-  status: z.enum(["open", "filled", "canceled", "on_hold"]).optional(),
+  status: z.enum(["open", "filled", "canceled", "on_hold", "pending"]).optional(),
 });
 
 const jobOrderPatch = jobOrderBody.partial();
@@ -19,7 +19,9 @@ export function registerJobOrderRoutes(app: Express): void {
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: "Database not configured" });
     const r = await pool.query(
-      `SELECT id, client_company, title, location, remote, salary_range, description, status, opened_at, created_at, updated_at
+      `SELECT id, client_company, title, location, remote, salary_range, description, status,
+              source, client_contact_name, client_contact_email, client_notes,
+              opened_at, created_at, updated_at
        FROM job_orders WHERE tenant_id = $1 ORDER BY updated_at DESC`,
       [req.tenantId]
     );
