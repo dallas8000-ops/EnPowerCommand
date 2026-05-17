@@ -33,7 +33,13 @@ services:
         value: gpt-4o-mini
       - key: AUTH_SECRET
         sync: false
-      - key: ADMIN_PASSWORD
+      - key: DB_SSL
+        value: "true"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PRICE_ID
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
         sync: false
 
   # Static sites on Render do not support `region` (see Blueprint validation).

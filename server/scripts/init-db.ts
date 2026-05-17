@@ -23,7 +23,9 @@ async function main() {
   }
 
   const schemaPath = join(__dirname, "..", "sql", "schema.sql");
+  const schemaV2Path = join(__dirname, "..", "sql", "schema-v2.sql");
   const sql = readFileSync(schemaPath, "utf8");
+  const sqlV2 = readFileSync(schemaV2Path, "utf8");
 
   const client = new pg.Client({
     connectionString: url,
@@ -32,7 +34,20 @@ async function main() {
   await client.connect();
   try {
     await client.query(sql);
-    console.log("Schema applied.");
+    console.log("Schema v1 applied.");
+    await client.query(sqlV2);
+    console.log("Schema v2 (multi-tenant recruiter) applied.");
+    await client.query(`
+      INSERT INTO tenants (id, name, subscription_status) VALUES
+        ('00000000-0000-0000-0000-000000000000', 'Dev Tenant', 'active')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    await client.query(`
+      INSERT INTO tenant_users (id, tenant_id, email, password_hash, role) VALUES
+        ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'dev@localhost', 'skip', 'admin')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    console.log("Dev tenant seeded (SKIP_AUTH=true compatible).");
   } finally {
     await client.end();
   }

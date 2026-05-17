@@ -9,7 +9,7 @@ type ConversionRow = {
 };
 
 export function registerAnalyticsRoutes(app: Express): void {
-  app.get("/api/analytics/weekly", async (_req: Request, res: Response) => {
+  app.get("/api/analytics/weekly", async (req: Request, res: Response) => {
     const pool = getPool();
     if (!pool) {
       return res.status(503).json({
@@ -26,9 +26,12 @@ export function registerAnalyticsRoutes(app: Express): void {
          COUNT(*) FILTER (WHERE kind = 'applied') AS applied_count,
          COUNT(*) FILTER (WHERE kind = 'interview') AS interview_count
        FROM lead_activities
-       WHERE created_at >= now() - interval '7 days'`
+       WHERE created_at >= now() - interval '7 days'
+         AND tenant_id IS NOT DISTINCT FROM $1`,
+      [req.tenantId ?? null]
     );
 
+    const tenantId = req.tenantId ?? null;
     const roleQuery = await pool.query<ConversionRow>(
       `SELECT
          'role' AS bucket,
@@ -39,8 +42,10 @@ export function registerAnalyticsRoutes(app: Express): void {
        JOIN leads l ON l.id = la.lead_id
        WHERE la.created_at >= now() - interval '7 days'
          AND la.kind IN ('applied', 'interview')
+         AND la.tenant_id IS NOT DISTINCT FROM $1
        GROUP BY label
-       ORDER BY interview_count DESC, applied_count DESC, label ASC`
+       ORDER BY interview_count DESC, applied_count DESC, label ASC`,
+      [tenantId]
     );
 
     const sourceQuery = await pool.query<ConversionRow>(
@@ -63,8 +68,10 @@ export function registerAnalyticsRoutes(app: Express): void {
        JOIN leads l ON l.id = la.lead_id
        WHERE la.created_at >= now() - interval '7 days'
          AND la.kind IN ('applied', 'interview')
+         AND la.tenant_id IS NOT DISTINCT FROM $1
        GROUP BY label
-       ORDER BY interview_count DESC, applied_count DESC, label ASC`
+       ORDER BY interview_count DESC, applied_count DESC, label ASC`,
+      [tenantId]
     );
 
     const totalApplied = Number(summaryQuery.rows[0]?.applied_count ?? 0);

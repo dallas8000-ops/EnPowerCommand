@@ -7,7 +7,7 @@ function csvEscape(s: string | null | undefined): string {
 }
 
 export function registerExportRoutes(app: Express): void {
-  app.get("/api/export/leads.csv", async (_req: Request, res: Response) => {
+  app.get("/api/export/leads.csv", async (req: Request, res: Response) => {
     const pool = getPool();
     if (!pool) {
       return res.status(503).json({ error: "Database not configured" });
@@ -16,7 +16,8 @@ export function registerExportRoutes(app: Express): void {
     const r = await pool.query(
       `SELECT id, company, contact_name, role, url, notes, stage,
               next_action_at, last_contact_at, created_at, updated_at
-       FROM leads ORDER BY updated_at DESC`
+       FROM leads WHERE tenant_id IS NOT DISTINCT FROM $1 ORDER BY updated_at DESC`,
+      [req.tenantId ?? null]
     );
 
     const headers = [
@@ -69,7 +70,7 @@ export function registerExportRoutes(app: Express): void {
     res.send(body);
   });
 
-  app.get("/api/export/activities.csv", async (_req: Request, res: Response) => {
+  app.get("/api/export/activities.csv", async (req: Request, res: Response) => {
     const pool = getPool();
     if (!pool) {
       return res.status(503).json({ error: "Database not configured" });
@@ -79,7 +80,9 @@ export function registerExportRoutes(app: Express): void {
       `SELECT a.id, a.lead_id, l.company, a.kind, a.note, a.created_at
        FROM lead_activities a
        JOIN leads l ON l.id = a.lead_id
-       ORDER BY a.created_at DESC`
+       WHERE a.tenant_id IS NOT DISTINCT FROM $1
+       ORDER BY a.created_at DESC`,
+      [req.tenantId ?? null]
     );
 
     const headers = ["activity_id", "lead_id", "company", "kind", "note", "created_at"];

@@ -102,9 +102,11 @@ export function registerOutreachRoutes(app: Express): void {
 
     if (!resumeContext && pool) {
       try {
-        const pr = await pool.query<{ resume_text: string }>(
-          `SELECT resume_text FROM user_profile WHERE id = 1 LIMIT 1`
-        );
+        const tenantId = req.tenantId;
+        const profileQuery = tenantId
+          ? pool.query<{ resume_text: string }>(`SELECT resume_text FROM tenant_profiles WHERE tenant_id = $1 LIMIT 1`, [tenantId])
+          : pool.query<{ resume_text: string }>(`SELECT resume_text FROM user_profile WHERE id = 1 LIMIT 1`);
+        const pr = await profileQuery;
         const stored = pr.rows[0]?.resume_text;
         if (typeof stored === "string" && stored.trim()) resumeContext = stored.trim();
       } catch {

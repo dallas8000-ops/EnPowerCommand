@@ -53,6 +53,7 @@ export type Health = {
   service: string
   db: boolean
   ai: boolean
+  stripe?: boolean
   auth_required?: boolean
 }
 
@@ -86,15 +87,16 @@ export async function getWeeklyAnalytics(): Promise<WeeklyAnalytics> {
 }
 
 export async function login(
+  email: string,
   password: string
-): Promise<{ token?: string; error?: string }> {
+): Promise<{ token?: string; tenant_name?: string; role?: string; error?: string }> {
   const res = await fetch(apiUrl('/api/auth/login'), {
     method: 'POST',
     headers: jsonHeaders,
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ email, password }),
   })
-  const data = (await parseJson(res)) as { token?: string; error?: string }
-  if (res.ok && data.token) return { token: data.token }
+  const data = (await parseJson(res)) as { token?: string; tenant_name?: string; role?: string; error?: string }
+  if (res.ok && data.token) return { token: data.token, tenant_name: data.tenant_name, role: data.role }
   return {
     error:
       typeof data.error === 'string'
@@ -103,6 +105,21 @@ export async function login(
           ? (data as { hint?: string }).hint ?? 'Login not available'
           : 'Login failed',
   }
+}
+
+export async function register(body: {
+  agency_name: string
+  email: string
+  password: string
+}): Promise<{ token?: string; tenant_name?: string; role?: string; plan?: string; error?: string }> {
+  const res = await fetch(apiUrl('/api/auth/register'), {
+    method: 'POST',
+    headers: jsonHeaders,
+    body: JSON.stringify(body),
+  })
+  const data = (await parseJson(res)) as { token?: string; tenant_name?: string; role?: string; plan?: string; error?: string }
+  if (res.ok && data.token) return data
+  return { error: typeof data.error === 'string' ? data.error : 'Registration failed' }
 }
 
 export async function getProfile(): Promise<{
@@ -313,4 +330,155 @@ export async function generateOutreach(body: {
     return { ...data.fallback, disclaimer: 'AI unavailable — showing templates.', status: 200 }
   }
   return { ...data, status: res.ok ? 200 : res.status }
+}
+
+// --- Recruiter: Candidates ---
+
+export type Candidate = {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  title: string | null
+  location: string | null
+  resume_url: string | null
+  skills: string | null
+  notes: string | null
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export async function listCandidates(): Promise<{ candidates: Candidate[] }> {
+  const res = await apiFetch('/api/candidates')
+  return parseJson(res) as Promise<{ candidates: Candidate[] }>
+}
+
+export async function getCandidate(id: string): Promise<{ candidate?: Candidate; error?: string }> {
+  const res = await apiFetch(`/api/candidates/${id}`)
+  return parseJson(res) as Promise<{ candidate?: Candidate; error?: string }>
+}
+
+export async function createCandidate(body: Partial<Candidate> & { name: string }): Promise<{ candidate?: Candidate; error?: string }> {
+  const res = await apiFetch('/api/candidates', { method: 'POST', body: JSON.stringify(body) })
+  return parseJson(res) as Promise<{ candidate?: Candidate; error?: string }>
+}
+
+export async function patchCandidate(id: string, body: Partial<Candidate>): Promise<{ candidate?: Candidate; error?: string }> {
+  const res = await apiFetch(`/api/candidates/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+  return parseJson(res) as Promise<{ candidate?: Candidate; error?: string }>
+}
+
+export async function deleteCandidate(id: string): Promise<void> {
+  await apiFetch(`/api/candidates/${id}`, { method: 'DELETE' })
+}
+
+export async function listCandidateActivities(candidateId: string): Promise<{ activities: LeadActivity[] }> {
+  const res = await apiFetch(`/api/candidates/${candidateId}/activities`)
+  return parseJson(res) as Promise<{ activities: LeadActivity[] }>
+}
+
+export async function postCandidateActivity(candidateId: string, body: { kind: string; note?: string | null }): Promise<{ activity?: LeadActivity }> {
+  const res = await apiFetch(`/api/candidates/${candidateId}/activities`, { method: 'POST', body: JSON.stringify(body) })
+  return parseJson(res) as Promise<{ activity?: LeadActivity }>
+}
+
+// --- Recruiter: Job Orders ---
+
+export type JobOrder = {
+  id: string
+  client_company: string
+  title: string
+  location: string | null
+  remote: boolean
+  salary_range: string | null
+  description: string | null
+  status: string
+  opened_at: string
+  created_at: string
+  updated_at: string
+}
+
+export async function listJobOrders(): Promise<{ job_orders: JobOrder[] }> {
+  const res = await apiFetch('/api/job-orders')
+  return parseJson(res) as Promise<{ job_orders: JobOrder[] }>
+}
+
+export async function getJobOrder(id: string): Promise<{ job_order?: JobOrder; error?: string }> {
+  const res = await apiFetch(`/api/job-orders/${id}`)
+  return parseJson(res) as Promise<{ job_order?: JobOrder; error?: string }>
+}
+
+export async function createJobOrder(body: Partial<JobOrder> & { client_company: string; title: string }): Promise<{ job_order?: JobOrder; error?: string }> {
+  const res = await apiFetch('/api/job-orders', { method: 'POST', body: JSON.stringify(body) })
+  return parseJson(res) as Promise<{ job_order?: JobOrder; error?: string }>
+}
+
+export async function patchJobOrder(id: string, body: Partial<JobOrder>): Promise<{ job_order?: JobOrder; error?: string }> {
+  const res = await apiFetch(`/api/job-orders/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+  return parseJson(res) as Promise<{ job_order?: JobOrder; error?: string }>
+}
+
+export async function deleteJobOrder(id: string): Promise<void> {
+  await apiFetch(`/api/job-orders/${id}`, { method: 'DELETE' })
+}
+
+// --- Recruiter: Pipeline ---
+
+export type Placement = {
+  id: string
+  stage: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+  candidate: { id: string; name: string; title: string | null; email: string | null; skills: string | null }
+  job_order: { id: string; client_company: string; title: string; status: string }
+}
+
+export async function getPipeline(): Promise<{ placements: Placement[]; stages: string[] }> {
+  const res = await apiFetch('/api/pipeline')
+  return parseJson(res) as Promise<{ placements: Placement[]; stages: string[] }>
+}
+
+export async function addToPipeline(body: { candidate_id: string; job_order_id: string; stage?: string; notes?: string }): Promise<{ placement?: Placement; error?: string }> {
+  const res = await apiFetch('/api/pipeline', { method: 'POST', body: JSON.stringify(body) })
+  return parseJson(res) as Promise<{ placement?: Placement; error?: string }>
+}
+
+export async function patchPlacement(id: string, body: { stage?: string; notes?: string }): Promise<{ placement?: Placement; error?: string }> {
+  const res = await apiFetch(`/api/pipeline/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+  return parseJson(res) as Promise<{ placement?: Placement; error?: string }>
+}
+
+export async function removePlacement(id: string): Promise<void> {
+  await apiFetch(`/api/pipeline/${id}`, { method: 'DELETE' })
+}
+
+// --- Billing ---
+
+export type BillingStatus = {
+  plan: string
+  trial_ends_at: string
+  stripe_enabled: boolean
+  has_subscription: boolean
+}
+
+export async function getBillingStatus(): Promise<BillingStatus> {
+  const res = await apiFetch('/api/billing/status')
+  return parseJson(res) as Promise<BillingStatus>
+}
+
+export async function createCheckoutSession(): Promise<{ checkout_url?: string; error?: string }> {
+  const res = await apiFetch('/api/billing/checkout', { method: 'POST' })
+  return parseJson(res) as Promise<{ checkout_url?: string; error?: string }>
+}
+
+export async function createBillingPortal(): Promise<{ portal_url?: string; error?: string }> {
+  const res = await apiFetch('/api/billing/portal', { method: 'POST' })
+  return parseJson(res) as Promise<{ portal_url?: string; error?: string }>
+}
+
+export async function refreshToken(): Promise<{ token?: string }> {
+  const res = await apiFetch('/api/billing/refresh-token', { method: 'POST' })
+  return parseJson(res) as Promise<{ token?: string }>
 }
