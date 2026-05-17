@@ -1,27 +1,43 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  getDashboardAnalytics,
   getHealth,
-  getPipeline,
-  getWeeklyAnalytics,
   listCandidates,
   listJobOrders,
-  listLeads,
-  type ConversionBucket,
+  type DashboardAnalytics,
   type Health,
-  type Lead,
-  type Placement,
 } from '../api'
 import { getAuthMeta } from '../auth'
 
-type StageCount = { stage: string; count: number }
+const STAGE_COLORS: Record<string, string> = {
+  sourced:    '#6366f1',
+  screening:  '#8b5cf6',
+  submitted:  '#3b82f6',
+  interview:  '#f59e0b',
+  offer:      '#10b981',
+  placed:     '#22c55e',
+  rejected:   '#ef4444',
+}
 
-function isTouchedThisWeek(lead: Lead): boolean {
-  const base = lead.last_contact_at ?? lead.updated_at
-  if (!base) return false
-  const dt = new Date(base)
-  if (Number.isNaN(dt.getTime())) return false
-  return Date.now() - dt.getTime() <= 7 * 24 * 60 * 60 * 1000
+function BarChart({ data }: { data: { label: string; value: number; color: string }[] }) {
+  const max = Math.max(...data.map((d) => d.value), 1)
+  return (
+    <div className="bar-chart">
+      {data.map((d) => (
+        <div key={d.label} className="bar-chart__row">
+          <span className="bar-chart__label">{d.label}</span>
+          <div className="bar-chart__track">
+            <div
+              className="bar-chart__fill"
+              style={{ width: `${Math.round((d.value / max) * 100)}%`, background: d.color }}
+            />
+          </div>
+          <span className="bar-chart__val">{d.value}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function Home() {
@@ -29,65 +45,26 @@ export function Home() {
   const [health, setHealth] = useState<Health | null>(null)
   const [candidateCount, setCandidateCount] = useState(0)
   const [openJobCount, setOpenJobCount] = useState(0)
-  const [placements, setPlacements] = useState<Placement[]>([])
-  const [stageCounts, setStageCounts] = useState<StageCount[]>([])
-  const [weeklyTotal, setWeeklyTotal] = useState(0)
-  const [conversionSummary, setConversionSummary] = useState<{
-    applied_count: number
-    interview_count: number
-    conversion_rate: number
-  } | null>(null)
-  const [byRole, setByRole] = useState<ConversionBucket[]>([])
-  const [bySource, setBySource] = useState<ConversionBucket[]>([])
+  const [dash, setDash] = useState<DashboardAnalytics | null>(null)
 
   useEffect(() => {
-    getHealth()
-      .then(setHealth)
-      .catch(() => setHealth({ ok: false, service: '', db: false, ai: false, stripe: false, auth_required: false }))
-
-    listCandidates()
-      .then((r) => setCandidateCount(r.candidates.length))
-      .catch(() => setCandidateCount(0))
-
-    listJobOrders()
-      .then((r) => setOpenJobCount(r.job_orders.filter((j) => j.status === 'open').length))
-      .catch(() => setOpenJobCount(0))
-
-    getPipeline()
-      .then((r) => setPlacements(r.placements))
-      .catch(() => setPlacements([]))
-
-    listLeads()
-      .then((r) => {
-        const touched = (r.leads ?? []).filter(isTouchedThisWeek)
-        const byStage = new Map<string, number>()
-        for (const lead of touched) {
-          const stage = (lead.stage ?? 'unknown').trim().toLowerCase() || 'unknown'
-          byStage.set(stage, (byStage.get(stage) ?? 0) + 1)
-        }
-        setWeeklyTotal(touched.length)
-        setStageCounts(
-          Array.from(byStage.entries())
-            .map(([stage, count]) => ({ stage, count }))
-            .sort((a, b) => b.count - a.count || a.stage.localeCompare(b.stage))
-        )
-      })
-      .catch(() => { setWeeklyTotal(0); setStageCounts([]) })
-
-    getWeeklyAnalytics()
-      .then((r) => { setConversionSummary(r.summary); setByRole(r.by_role ?? []); setBySource(r.by_source ?? []) })
-      .catch(() => { setConversionSummary(null); setByRole([]); setBySource([]) })
+    getHealth().then(setHealth).catch(() => null)
+    listCandidates().then((r) => setCandidateCount(r.candidates.length)).catch(() => null)
+    listJobOrders().then((r) => setOpenJobCount(r.job_orders.filter((j) => j.status === 'open').length)).catch(() => null)
+    getDashboardAnalytics().then(setDash).catch(() => null)
   }, [])
 
-  const activePlacements = placements.filter((p) => !['placed', 'rejected'].includes(p.stage))
-  const placedThisRun = placements.filter((p) => p.stage === 'placed').length
+  const totalPipeline = dash?.stages.reduce((s, x) => s + ((['placed','rejected'].includes(x.stage)) ? 0 : x.count), 0) ?? 0
+  const placedCount = dash?.stages.find((s) => s.stage === 'placed')?.count ?? 0
+
+  const chartData = (dash?.stages ?? [])
+    .filter((s) => s.count > 0)
+    .map((s) => ({ label: s.stage, value: s.count, color: STAGE_COLORS[s.stage] ?? '#6366f1' }))
 
   return (
     <div className="page">
       <p className="eyebrow">RecruitCommand</p>
-      <h1>
-        {meta.tenant_name ? `Welcome, ${meta.tenant_name}` : 'Dashboard'}
-      </h1>
+      <h1>{meta.tenant_name ? `Welcome, ${meta.tenant_name}` : 'Dashboard'}</h1>
 
       {health && (
         <ul className="status-line" style={{ marginBottom: '1.5rem' }}>
@@ -98,7 +75,7 @@ export function Home() {
         </ul>
       )}
 
-      {/* Recruiter KPI row */}
+      {/* KPI row */}
       <div className="stat-row">
         <div className="stat-card">
           <p className="stat-card__label">Candidates</p>
@@ -112,100 +89,71 @@ export function Home() {
         </div>
         <div className="stat-card">
           <p className="stat-card__label">In pipeline</p>
-          <p className="stat-card__value">{activePlacements.length}</p>
+          <p className="stat-card__value">{totalPipeline}</p>
           <p className="stat-card__sub"><Link to="/pipeline" className="link">View board →</Link></p>
         </div>
         <div className="stat-card">
-          <p className="stat-card__label">Placed</p>
-          <p className="stat-card__value">{placedThisRun}</p>
-          <p className="stat-card__sub" style={{ color: '#86efac' }}>All time</p>
+          <p className="stat-card__label">Fill rate</p>
+          <p className="stat-card__value">{dash ? `${dash.fill_rate}%` : '—'}</p>
+          <p className="stat-card__sub" style={{ color: '#86efac' }}>{placedCount} placed · {dash?.jobs_total ?? 0} total</p>
         </div>
       </div>
 
       {/* Quick actions */}
-      <div className="actions" style={{ marginBottom: '1.5rem' }}>
+      <div className="actions" style={{ marginBottom: '1.75rem' }}>
         <Link className="btn primary" to="/candidates/new">+ Add candidate</Link>
         <Link className="btn secondary" to="/job-orders/new">+ New job order</Link>
         <Link className="btn ghost" to="/pipeline">Open pipeline board</Link>
+        <Link className="btn ghost" to="/ai/jd-generator">✦ AI Tools</Link>
       </div>
 
-      {/* Pipeline snapshot */}
-      {placements.length > 0 && (
-        <section className="weekly-stage-card" style={{ marginBottom: '1rem' }}>
-          <h2>Pipeline snapshot</h2>
-          <div className="stage-chips">
-            {(['sourced','screening','submitted','interview','offer','placed','rejected'] as const).map((s) => {
-              const count = placements.filter((p) => p.stage === s).length
-              if (count === 0) return null
-              return (
-                <span key={s} className={`tag tag--${s}`}>
-                  {s}: {count}
-                </span>
-              )
-            })}
-          </div>
-        </section>
-      )}
+      {/* Two-column charts */}
+      <div className="dashboard-grid">
+        {/* Pipeline bar chart */}
+        <div className="form-card">
+          <h2>Pipeline by stage</h2>
+          {chartData.length > 0
+            ? <BarChart data={chartData} />
+            : <p className="muted small">No pipeline data yet.</p>}
+        </div>
 
-      {/* Lead activity (legacy job search analytics) */}
-      <section className="weekly-stage-card">
-        <h2>Lead activity — this week</h2>
-        <p className="muted small">
-          {weeklyTotal > 0
-            ? `${weeklyTotal} lead${weeklyTotal === 1 ? '' : 's'} touched in the last 7 days.`
-            : 'No leads touched this week.'}
-        </p>
-        {stageCounts.length > 0 && (
-          <div className="stage-chips">
-            {stageCounts.map((s) => (
-              <span key={s.stage} className="pill">{s.stage}: {s.count}</span>
+        {/* Velocity table */}
+        <div className="form-card">
+          <h2>Avg. days per stage</h2>
+          {dash && dash.stages.some((s) => s.avg_days !== null) ? (
+            <table className="velocity-table">
+              <tbody>
+                {dash.stages.filter((s) => s.avg_days !== null).map((s) => (
+                  <tr key={s.stage}>
+                    <td><span className="pill" style={{ background: STAGE_COLORS[s.stage] + '22', color: STAGE_COLORS[s.stage] }}>{s.stage}</span></td>
+                    <td className="velocity-table__days">{s.avg_days}d avg</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="muted small">Velocity data appears once candidates move between stages.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Recent activity feed */}
+      <div className="form-card" style={{ marginTop: '1.5rem' }}>
+        <h2>Recent activity</h2>
+        {dash && dash.recent_activity.length > 0 ? (
+          <ul className="activity-log">
+            {dash.recent_activity.map((a, i) => (
+              <li key={i} className="activity-log__item">
+                <span className={`tag tag--${a.kind}`}>{a.kind}</span>
+                <span className="activity-log__note"><strong>{a.candidate_name}</strong> — {a.note}</span>
+                <span className="activity-log__date">{new Date(a.created_at).toLocaleDateString()}</span>
+              </li>
             ))}
-          </div>
-        )}
-      </section>
-
-      <section className="weekly-stage-card" style={{ marginTop: '0.75rem' }}>
-        <h2>Conversion analytics (applied → interview)</h2>
-        {conversionSummary ? (
-          <>
-            <p className="muted small">
-              Applied: <strong>{conversionSummary.applied_count}</strong> · Interview:{' '}
-              <strong>{conversionSummary.interview_count}</strong> · Rate:{' '}
-              <strong>{Math.round(conversionSummary.conversion_rate * 100)}%</strong>
-            </p>
-            <div className="analytics-grid">
-              <div>
-                <h3>By role</h3>
-                <ul className="analytics-list">
-                  {byRole.length === 0
-                    ? <li className="muted small">No data this week.</li>
-                    : byRole.slice(0, 6).map((x) => (
-                        <li key={x.label}>
-                          <span>{x.label}</span>
-                          <span className="muted small">{x.interview_count}/{x.applied_count} ({Math.round(x.conversion_rate * 100)}%)</span>
-                        </li>
-                      ))}
-                </ul>
-              </div>
-              <div>
-                <h3>By source</h3>
-                <ul className="analytics-list">
-                  {bySource.length === 0
-                    ? <li className="muted small">No data this week.</li>
-                    : bySource.slice(0, 6).map((x) => (
-                        <li key={x.label}>
-                          <span>{x.label}</span>
-                          <span className="muted small">{x.interview_count}/{x.applied_count} ({Math.round(x.conversion_rate * 100)}%)</span>
-                        </li>
-                      ))}
-                </ul>
-              </div>
-            </div>
-          </>
+          </ul>
         ) : (
-          <p className="muted small">Analytics will appear once activity data is available.</p>
+          <p className="muted small">Activity will appear here as you log notes and move candidates through the pipeline.</p>
         )}
-      </section>
+      </div>
     </div>
   )
 }

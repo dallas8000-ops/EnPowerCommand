@@ -80,6 +80,32 @@ export async function getHealth(): Promise<Health> {
   return parseJson(res) as Promise<Health>
 }
 
+export type DashboardStage = {
+  stage: string
+  count: number
+  avg_days: number | null
+}
+
+export type DashboardActivity = {
+  kind: string
+  note: string
+  created_at: string
+  candidate_name: string
+}
+
+export type DashboardAnalytics = {
+  stages: DashboardStage[]
+  fill_rate: number
+  jobs_total: number
+  jobs_filled: number
+  recent_activity: DashboardActivity[]
+}
+
+export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
+  const res = await apiFetch('/api/analytics/dashboard')
+  return parseJson(res) as Promise<DashboardAnalytics>
+}
+
 export async function getWeeklyAnalytics(): Promise<WeeklyAnalytics> {
   const res = await apiFetch('/api/analytics/weekly')
   const data = await parseJson(res)

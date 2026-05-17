@@ -869,6 +869,72 @@ label.checkbox-row {
   color: var(--text);
 }
 
+/* Dashboard two-column grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 0;
+}
+
+@media (max-width: 700px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+/* Bar chart */
+.bar-chart { display: flex; flex-direction: column; gap: 0.55rem; }
+
+.bar-chart__row {
+  display: grid;
+  grid-template-columns: 80px 1fr 32px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bar-chart__label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+  text-align: right;
+}
+
+.bar-chart__track {
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.bar-chart__fill {
+  height: 100%;
+  border-radius: 99px;
+  min-width: 4px;
+  transition: width 0.4s ease;
+}
+
+.bar-chart__val {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* Velocity table */
+.velocity-table { width: 100%; border-collapse: collapse; }
+
+.velocity-table tr + tr td { border-top: 1px solid var(--border); }
+
+.velocity-table td {
+  padding: 0.45rem 0.25rem;
+  font-size: 0.88rem;
+}
+
+.velocity-table__days {
+  text-align: right;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Candidate match cards */
 .match-list {
   display: flex;
