@@ -30,14 +30,17 @@ export function BillingPage() {
 
   useEffect(() => {
     const upgraded = searchParams.get('upgraded')
+    const delay = upgraded ? 2500 : 0
     if (upgraded) {
       refreshToken().then((r) => {
         if (r.token) setToken(r.token, meta)
       })
     }
-    getBillingStatus()
-      .then(setStatus)
-      .finally(() => setLoading(false))
+    setTimeout(() => {
+      getBillingStatus()
+        .then(setStatus)
+        .finally(() => setLoading(false))
+    }, delay)
   }, [])
 
   async function handleUpgrade() {

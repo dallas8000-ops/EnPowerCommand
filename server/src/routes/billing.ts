@@ -131,7 +131,7 @@ export function registerBillingRoutes(app: Express): void {
         return;
       }
 
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
       if (!webhookSecret) {
         res.status(503).json({ error: "STRIPE_WEBHOOK_SECRET not set" });
         return;
