@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  buildGoogleCalendarUrl,
+  buildOutlookCalendarUrl,
   createInterview,
   deleteInterview,
+  getInterviewIcsUrl,
   listCandidates,
   listInterviews,
   listJobOrders,
   patchInterview,
+  sendCalendarInvite,
   type Candidate,
   type Interview,
   type JobOrder,
@@ -167,6 +171,24 @@ function InterviewCard({ interview: i, onStatus, onDelete }: {
   onStatus: (id: string, status: string) => void
   onDelete: (id: string) => void
 }) {
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null)
+  const [extraEmail, setExtraEmail] = useState('')
+  const [showInvite, setShowInvite] = useState(false)
+
+  async function onSendInvite() {
+    setInviteBusy(true); setInviteMsg(null)
+    try {
+      const r = await sendCalendarInvite(i.id, { send_to_candidate: true, extra_email: extraEmail || undefined })
+      setInviteMsg(`✓ Sent to: ${r.sent_to.join(', ')}`)
+      setShowInvite(false)
+      setExtraEmail('')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed'
+      setInviteMsg(msg)
+    } finally { setInviteBusy(false) }
+  }
+
   return (
     <div className="interview-card">
       <div className="interview-card__header">
@@ -184,6 +206,30 @@ function InterviewCard({ interview: i, onStatus, onDelete }: {
       </p>
       {i.location && <p className="muted small" style={{ marginTop: '0.2rem' }}>📍 {i.location}</p>}
       {i.notes && <p className="muted small" style={{ marginTop: '0.2rem', fontStyle: 'italic' }}>{i.notes}</p>}
+
+      <div className="interview-card__calendar">
+        <a className="btn ghost small" href={buildGoogleCalendarUrl(i)} target="_blank" rel="noreferrer">+ Google Cal</a>
+        <a className="btn ghost small" href={buildOutlookCalendarUrl(i)} target="_blank" rel="noreferrer">+ Outlook</a>
+        <a className="btn ghost small" href={getInterviewIcsUrl(i.id)} download>↓ iCal</a>
+        <button className="btn ghost small" onClick={() => setShowInvite((v) => !v)}>✉ Send invite</button>
+      </div>
+
+      {showInvite && (
+        <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            style={{ flex: '1', minWidth: 180 }}
+            type="email"
+            placeholder="Optional: client contact email"
+            value={extraEmail}
+            onChange={(e) => setExtraEmail(e.target.value)}
+          />
+          <button className="btn primary small" onClick={onSendInvite} disabled={inviteBusy}>
+            {inviteBusy ? 'Sending…' : 'Send'}
+          </button>
+        </div>
+      )}
+      {inviteMsg && <p className="muted small" style={{ marginTop: '0.35rem', color: inviteMsg.startsWith('✓') ? '#22c55e' : '#f87171' }}>{inviteMsg}</p>}
+
       <div className="interview-card__actions">
         {i.status === 'scheduled' && (
           <>

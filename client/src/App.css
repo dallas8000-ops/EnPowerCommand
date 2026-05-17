@@ -941,6 +941,16 @@ label.checkbox-row {
 .team-table td { padding: 0.55rem 0.35rem; font-size: 0.9rem; vertical-align: middle; }
 .team-table select { font-size: 0.85rem; padding: 0.2rem 0.4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
 
+/* Interview card calendar row */
+.interview-card__calendar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
 /* Interview cards */
 .interview-list { display: flex; flex-direction: column; gap: 0.75rem; }
 

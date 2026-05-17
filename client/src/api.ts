@@ -501,6 +501,51 @@ export async function getCandidateEmails(candidateId: string): Promise<{ emails:
   return parseJson(res) as Promise<{ emails: EmailLog[] }>
 }
 
+export function getInterviewIcsUrl(interviewId: string): string {
+  const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+  return `${base}/api/interviews/${interviewId}/ics`
+}
+
+export async function sendCalendarInvite(interviewId: string, opts: { send_to_candidate?: boolean; extra_email?: string }): Promise<{ ok: boolean; sent_to: string[] }> {
+  const res = await apiFetch(`/api/interviews/${interviewId}/invite`, { method: 'POST', body: JSON.stringify(opts) })
+  return parseJson(res) as Promise<{ ok: boolean; sent_to: string[] }>
+}
+
+export function buildGoogleCalendarUrl(interview: {
+  scheduled_at: string; duration_minutes: number; candidate_name: string;
+  job_title: string; client_company: string; location: string | null; notes: string | null;
+}): string {
+  const start = new Date(interview.scheduled_at)
+  const end = new Date(start.getTime() + interview.duration_minutes * 60000)
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Interview: ${interview.candidate_name} — ${interview.job_title} @ ${interview.client_company}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    location: interview.location ?? '',
+    details: interview.notes ?? '',
+  })
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+export function buildOutlookCalendarUrl(interview: {
+  scheduled_at: string; duration_minutes: number; candidate_name: string;
+  job_title: string; client_company: string; location: string | null; notes: string | null;
+}): string {
+  const start = new Date(interview.scheduled_at)
+  const end = new Date(start.getTime() + interview.duration_minutes * 60000)
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: `Interview: ${interview.candidate_name} — ${interview.job_title} @ ${interview.client_company}`,
+    startdt: start.toISOString(),
+    enddt: end.toISOString(),
+    location: interview.location ?? '',
+    body: interview.notes ?? '',
+  })
+  return `https://outlook.live.com/calendar/0/action/compose?${params.toString()}`
+}
+
 export type TeamMember = {
   id: string
   email: string

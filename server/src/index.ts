@@ -21,6 +21,7 @@ import { registerCandidateOutreachRoutes } from "./routes/candidate-outreach.js"
 import { registerInterviewRoutes } from "./routes/interviews.js";
 import { registerTeamRoutes } from "./routes/team.js";
 import { registerEmailRoutes } from "./routes/email.js";
+import { registerCalendarRoutes } from "./routes/calendar.js";
 import { registerProfileRoutes } from "./routes/profile.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerRegisterRoutes } from "./routes/register.js";
@@ -74,6 +75,7 @@ registerCandidateOutreachRoutes(app);
 registerInterviewRoutes(app);
 registerTeamRoutes(app);
 registerEmailRoutes(app);
+registerCalendarRoutes(app);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
