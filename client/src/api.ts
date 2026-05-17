@@ -516,8 +516,10 @@ export async function submitPublicJob(data: {
     body: JSON.stringify(data),
   })
   if (!res.ok) {
-    const j = await res.json() as { error?: string }
-    throw new Error(j.error ?? 'Submission failed')
+    const text = await res.text()
+    let msg = 'Submission failed'
+    try { msg = (JSON.parse(text) as { error?: string }).error ?? msg } catch { /* empty body */ }
+    throw new Error(msg)
   }
   return res.json() as Promise<{ job: { id: string }; message: string }>
 }
