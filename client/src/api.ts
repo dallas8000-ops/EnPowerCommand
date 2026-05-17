@@ -403,6 +403,11 @@ export type JobOrder = {
   updated_at: string
 }
 
+export async function generateScreeningQuestions(jobOrderId: string): Promise<{ questions: string[]; source: string }> {
+  const res = await apiFetch(`/api/job-orders/${jobOrderId}/screening-questions`, { method: 'POST' })
+  return parseJson(res) as Promise<{ questions: string[]; source: string }>
+}
+
 export async function listJobOrders(): Promise<{ job_orders: JobOrder[] }> {
   const res = await apiFetch('/api/job-orders')
   return parseJson(res) as Promise<{ job_orders: JobOrder[] }>

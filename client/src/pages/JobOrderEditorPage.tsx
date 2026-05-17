@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { createJobOrder, deleteJobOrder, getJobOrder, patchJobOrder, type JobOrder } from '../api'
+import { createJobOrder, deleteJobOrder, generateScreeningQuestions, getJobOrder, patchJobOrder, type JobOrder } from '../api'
 
 export function JobOrderEditorPage() {
   const { id } = useParams<{ id: string }>()
@@ -12,6 +12,31 @@ export function JobOrderEditorPage() {
   const [loading, setLoading] = useState(!creating)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [questions, setQuestions] = useState<string[]>([])
+  const [qBusy, setQBusy] = useState(false)
+  const [qSource, setQSource] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  async function onGenerateQuestions() {
+    if (!id || creating) return
+    setQBusy(true)
+    setQuestions([])
+    setQSource(null)
+    try {
+      const r = await generateScreeningQuestions(id)
+      setQuestions(r.questions)
+      setQSource(r.source)
+    } finally {
+      setQBusy(false)
+    }
+  }
+
+  function copyQuestions() {
+    const text = questions.map((q, i) => `${i + 1}. ${q}`).join('\n')
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   useEffect(() => {
     if (creating || !id) return
@@ -112,6 +137,33 @@ export function JobOrderEditorPage() {
           </button>
         )}
       </div>
+
+      {!creating && (
+        <div className="form-card" style={{ marginTop: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0 }}>AI Screening Questions</h2>
+            <button className="btn primary small" onClick={onGenerateQuestions} disabled={qBusy}>
+              {qBusy ? 'Generating…' : questions.length ? 'Regenerate' : '✦ Generate'}
+            </button>
+          </div>
+          {qSource === 'fallback' && (
+            <p className="muted small" style={{ marginBottom: '0.75rem' }}>AI not configured — showing default questions. Add <code>OPENAI_API_KEY</code> for role-specific questions.</p>
+          )}
+          {questions.length > 0 && (
+            <>
+              <ol className="screening-list">
+                {questions.map((q, i) => <li key={i}>{q}</li>)}
+              </ol>
+              <button className="btn ghost small" style={{ marginTop: '0.75rem' }} onClick={copyQuestions}>
+                {copied ? '✓ Copied!' : 'Copy all'}
+              </button>
+            </>
+          )}
+          {questions.length === 0 && !qBusy && (
+            <p className="muted small">Click Generate to create role-specific screening questions for this job order.</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

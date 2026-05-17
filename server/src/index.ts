@@ -13,6 +13,7 @@ import { registerLeadRoutes } from "./routes/leads.js";
 import { registerOutreachRoutes } from "./routes/outreach.js";
 import { registerPipelineRoutes } from "./routes/pipeline.js";
 import { registerPostingRoutes } from "./routes/posting.js";
+import { registerScreeningRoutes } from "./routes/screening.js";
 import { registerProfileRoutes } from "./routes/profile.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerRegisterRoutes } from "./routes/register.js";
@@ -58,6 +59,7 @@ registerOutreachRoutes(app);
 registerCandidateRoutes(app);
 registerJobOrderRoutes(app);
 registerPipelineRoutes(app);
+registerScreeningRoutes(app);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

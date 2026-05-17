@@ -854,6 +854,21 @@ label.checkbox-row {
 }
 
 /* Responsive nav overflow */
+/* Screening questions list */
+.screening-list {
+  padding-left: 1.4rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.screening-list li {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
 /* Review inbox */
 .review-inbox {
   background: color-mix(in srgb, var(--accent) 6%, var(--surface));
