@@ -495,7 +495,7 @@ export type PublicJob = {
 }
 
 export async function getPublicJobs(): Promise<{ jobs: PublicJob[] }> {
-  const res = await fetch('/api/public/jobs')
+  const res = await fetch(apiUrl('/api/public/jobs'))
   return parseJson(res) as Promise<{ jobs: PublicJob[] }>
 }
 
@@ -510,7 +510,7 @@ export async function submitPublicJob(data: {
   client_contact_email: string
   client_notes?: string
 }): Promise<{ job: { id: string }; message: string }> {
-  const res = await fetch('/api/public/jobs/submit', {
+  const res = await fetch(apiUrl('/api/public/jobs/submit'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
