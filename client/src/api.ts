@@ -482,3 +482,42 @@ export async function refreshToken(): Promise<{ token?: string }> {
   const res = await apiFetch('/api/billing/refresh-token', { method: 'POST' })
   return parseJson(res) as Promise<{ token?: string }>
 }
+
+export type PublicJob = {
+  id: string
+  client_company: string
+  title: string
+  location: string | null
+  remote: boolean
+  salary_range: string | null
+  description: string | null
+  opened_at: string
+}
+
+export async function getPublicJobs(): Promise<{ jobs: PublicJob[] }> {
+  const res = await fetch('/api/public/jobs')
+  return parseJson(res) as Promise<{ jobs: PublicJob[] }>
+}
+
+export async function submitPublicJob(data: {
+  client_company: string
+  title: string
+  location?: string
+  remote?: boolean
+  salary_range?: string
+  description?: string
+  client_contact_name: string
+  client_contact_email: string
+  client_notes?: string
+}): Promise<{ job: { id: string }; message: string }> {
+  const res = await fetch('/api/public/jobs/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const j = await res.json() as { error?: string }
+    throw new Error(j.error ?? 'Submission failed')
+  }
+  return res.json() as Promise<{ job: { id: string }; message: string }>
+}

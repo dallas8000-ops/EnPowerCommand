@@ -14,6 +14,7 @@ import { registerOutreachRoutes } from "./routes/outreach.js";
 import { registerPipelineRoutes } from "./routes/pipeline.js";
 import { registerPostingRoutes } from "./routes/posting.js";
 import { registerProfileRoutes } from "./routes/profile.js";
+import { registerPublicRoutes } from "./routes/public.js";
 import { registerRegisterRoutes } from "./routes/register.js";
 
 const app = express();
@@ -40,6 +41,7 @@ app.get("/api/health", (_req, res) => {
 
 registerAuthRoutes(app);
 registerRegisterRoutes(app);
+registerPublicRoutes(app);
 
 app.use("/api/billing/webhook", express.raw({ type: "*/*" }));
 app.use(express.json({ limit: "2mb" }));

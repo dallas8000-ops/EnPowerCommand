@@ -41,6 +41,8 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: PUBLIC_TENANT_ID
+        sync: false
 
   # Static sites on Render do not support `region` (see Blueprint validation).
   - type: web

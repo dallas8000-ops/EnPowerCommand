@@ -15,6 +15,8 @@ import { LeadsPage } from './pages/LeadsPage'
 import { LoginPage } from './pages/LoginPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { ProfilePage } from './pages/ProfilePage'
+import { JobBoardPage } from './pages/JobBoardPage'
+import { PostJobPage } from './pages/PostJobPage'
 import { RegisterPage } from './pages/RegisterPage'
 
 function ProtectedLayout() {
@@ -84,6 +86,8 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/jobs" element={<JobBoardPage />} />
+      <Route path="/post-job" element={<PostJobPage />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/candidates" element={<CandidatesPage />} />
