@@ -87,6 +87,17 @@ registerAiToolRoutes(app);
 registerCsvExportRoutes(app);
 registerBlogRoutes(app);
 
+// Serve built React client in production
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDist = path.join(__dirname, "..", "..", "..", "client", "dist");
+app.use(express.static(clientDist));
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(clientDist, "index.html"));
+});
+
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   res.status(500).json({ error: err.message ?? "Internal server error" });
