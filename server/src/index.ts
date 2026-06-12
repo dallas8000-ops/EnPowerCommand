@@ -1,6 +1,8 @@
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import { authConfigured, requireAuth } from "./middleware/auth.js";
 import { registerActivityRoutes } from "./routes/activities.js";
 import { registerAnalyticsRoutes } from "./routes/analytics.js";
@@ -88,8 +90,6 @@ registerCsvExportRoutes(app);
 registerBlogRoutes(app);
 
 // Serve built React client in production
-import path from "path";
-import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const clientDist = path.join(__dirname, "..", "..", "..", "client", "dist");
