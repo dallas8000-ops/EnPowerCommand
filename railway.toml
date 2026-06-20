@@ -1,3 +1,6 @@
+# Combined API + React deploy when Railway rootDirectory is the repo root.
+# Split services use client/railway.toml (static web) or server/railway.toml (API).
+
 [build]
 buildCommand = "cd server && npm ci && npm run build && cd ../client && npm ci && npm run build"
 

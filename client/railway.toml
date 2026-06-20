@@ -1,0 +1,12 @@
+# enpower-command-web — static Vite SPA (Railway rootDirectory = client)
+# Overrides repo-root railway.toml, which targets a combined API+client deploy.
+
+[build]
+buildCommand = "npm ci && npm run build"
+
+[deploy]
+startCommand = "npx --yes serve -s dist -l tcp://0.0.0.0:$PORT"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
