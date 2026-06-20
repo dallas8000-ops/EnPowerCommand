@@ -2,7 +2,7 @@
 # Split services use client/railway.toml (static web) or server/railway.toml (API).
 
 [build]
-buildCommand = "cd server && npm ci && npm run build && cd ../client && npm ci && npm run build"
+buildCommand = "rm -rf server/dist client/dist && cd server && npm ci && npm run build && cd ../client && npm ci && npm run build"
 
 [deploy]
 startCommand = "cd server && node dist/index.js"

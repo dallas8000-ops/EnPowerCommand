@@ -1,7 +1,7 @@
 # enpower-command-api — Express API (Railway rootDirectory = server)
 
 [build]
-buildCommand = "npm ci && npm run build"
+buildCommand = "rm -rf dist && npm ci && npm run build"
 
 [deploy]
 startCommand = "node dist/index.js"
