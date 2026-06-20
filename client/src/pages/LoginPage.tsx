@@ -39,41 +39,43 @@ export function LoginPage() {
   const meta = getAuthMeta()
 
   return (
-    <div className="page stretch" style={{ maxWidth: 420 }}>
-      <p className="eyebrow">RecruitCommand</p>
-      <h1>Sign in</h1>
-      {meta.tenant_name && (
-        <p className="lede">Welcome back, <strong>{meta.tenant_name}</strong></p>
-      )}
-      {error && <div className="banner error">{error}</div>}
-      <form className="grid-form" onSubmit={onSubmit} style={{ gridTemplateColumns: '1fr' }}>
-        <label className="full">
-          Email
-          <input
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label className="full">
-          Password
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        <button className="btn primary" type="submit" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-      <p style={{ marginTop: '1rem', textAlign: 'center' }} className="muted small">
-        No account? <Link to="/register">Create one free →</Link>
-      </p>
+    <div className="auth-page">
+      <div className="auth-card">
+        <p className="eyebrow">RecruitCommand</p>
+        <h1>Sign in</h1>
+        {meta.tenant_name && (
+          <p className="lede">Welcome back, <strong>{meta.tenant_name}</strong></p>
+        )}
+        {error && <div className="banner error">{error}</div>}
+        <form className="grid-form" onSubmit={onSubmit} style={{ gridTemplateColumns: '1fr' }}>
+          <label className="full">
+            Email
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <label className="full">
+            Password
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+        <p style={{ marginTop: '1rem', textAlign: 'center' }} className="muted small">
+          No account? <Link to="/register">Create one free →</Link>
+        </p>
+      </div>
     </div>
   )
 }

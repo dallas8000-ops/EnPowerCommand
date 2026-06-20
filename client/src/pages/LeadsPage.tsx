@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { downloadActivitiesCsv, downloadLeadsCsv, listLeads, type Lead } from '../api'
+import {
+  downloadActivitiesCsv,
+  downloadLeadsCsv,
+  getWeeklyAnalytics,
+  listLeads,
+  type ConversionBucket,
+  type Lead,
+} from '../api'
 
 const REMINDER_NEXT_KEY = 'enpower_export_reminder_next_at'
 const REMINDER_LAST_KEY = 'enpower_export_last_at'
@@ -14,6 +21,13 @@ export function LeadsPage() {
   const [reminderText, setReminderText] = useState('')
   const [exportBusy, setExportBusy] = useState(false)
   const [dueReminders, setDueReminders] = useState<Lead[]>([])
+  const [weeklySummary, setWeeklySummary] = useState<{
+    applied_count: number
+    interview_count: number
+    conversion_rate: number
+  } | null>(null)
+  const [byRole, setByRole] = useState<ConversionBucket[]>([])
+  const [bySource, setBySource] = useState<ConversionBucket[]>([])
 
   useEffect(() => {
     listLeads().then((r) => {
@@ -48,6 +62,17 @@ export function LeadsPage() {
       setReminderText('It has been over 7 days since your last CSV export.')
       setShowReminder(true)
     }
+    getWeeklyAnalytics()
+      .then((r) => {
+        setWeeklySummary(r.summary)
+        setByRole(r.by_role ?? [])
+        setBySource(r.by_source ?? [])
+      })
+      .catch(() => {
+        setWeeklySummary(null)
+        setByRole([])
+        setBySource([])
+      })
   }, [])
 
   function markReminder(msFromNow: number) {
@@ -118,6 +143,55 @@ export function LeadsPage() {
           </div>
         </div>
       )}
+      {weeklySummary && (
+        <section className="weekly-stage-card">
+          <h2>This week: applied → interview</h2>
+          <p className="muted small">
+            Applied: <strong>{weeklySummary.applied_count}</strong> · Interview:{' '}
+            <strong>{weeklySummary.interview_count}</strong> · Conversion:{' '}
+            <strong>{Math.round(weeklySummary.conversion_rate * 100)}%</strong>
+          </p>
+          <div className="analytics-grid">
+            <div>
+              <h3>By role</h3>
+              <ul className="analytics-list">
+                {byRole.length === 0 ? (
+                  <li className="muted small">No applied/interview activity this week.</li>
+                ) : (
+                  byRole.slice(0, 5).map((x) => (
+                    <li key={x.label}>
+                      <span>{x.label}</span>
+                      <span className="muted small">
+                        {x.interview_count}/{x.applied_count} (
+                        {Math.round(x.conversion_rate * 100)}%)
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+            <div>
+              <h3>By source</h3>
+              <ul className="analytics-list">
+                {bySource.length === 0 ? (
+                  <li className="muted small">No source trends yet this week.</li>
+                ) : (
+                  bySource.slice(0, 5).map((x) => (
+                    <li key={x.label}>
+                      <span>{x.label}</span>
+                      <span className="muted small">
+                        {x.interview_count}/{x.applied_count} (
+                        {Math.round(x.conversion_rate * 100)}%)
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
+
       {dueReminders.length > 0 && (
         <div className="banner followup-reminder">
           <strong>Follow-up reminders due now: {dueReminders.length}</strong>
