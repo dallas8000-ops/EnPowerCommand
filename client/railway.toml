@@ -5,7 +5,7 @@
 buildCommand = "rm -rf dist && npm ci && npm run build"
 
 [deploy]
-startCommand = "npx --yes serve -s dist -l tcp://0.0.0.0:$PORT"
+# Let Railpack/Caddy serve the Vite SPA; do not set startCommand here.
 healthcheckPath = "/"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
