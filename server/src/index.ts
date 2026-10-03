@@ -74,7 +74,7 @@ app.get("*", (_req, res, next) => {
 
 // Stripe calls the webhook without a session; it authenticates by signature.
 app.use((req, res, next) => {
-  if (req.path === "/api/billing/webhook") { next(); return; }
+  if (req.path.replace(/\/+$/, "") === "/api/billing/webhook") { next(); return; }
   requireAuth(req, res, next);
 });
 registerBillingRoutes(app);
