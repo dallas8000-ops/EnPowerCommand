@@ -270,6 +270,8 @@ export function registerBillingRoutes(app: Express): void {
 }
 
 function express_raw_body_middleware(req: Request, _res: Response, next: () => void) {
+  // express.raw() in index.ts has already read the stream; waiting for "end" would hang forever.
+  if (Buffer.isBuffer(req.body)) { next(); return; }
   if (req.headers["stripe-signature"]) {
     let data = "";
     req.setEncoding("latin1");
