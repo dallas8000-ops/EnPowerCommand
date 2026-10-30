@@ -3,9 +3,11 @@ import { useSearchParams } from 'react-router-dom'
 import {
   createBillingPortal,
   createCheckoutSession,
+  getBillingPlans,
   getBillingStatus,
   verifyCheckoutSession,
   refreshToken,
+  type BillingPlan,
   type BillingStatus,
 } from '../api'
 import { getAuthMeta, setToken } from '../auth'
@@ -21,8 +23,14 @@ function planLabel(plan: string): string {
   return 'Canceled'
 }
 
+function formatPrice(plan: BillingPlan): string {
+  const dollars = (plan.amount / 100).toFixed(plan.amount % 100 === 0 ? 0 : 2)
+  return `$${dollars}/${plan.interval}`
+}
+
 export function BillingPage() {
   const [status, setStatus] = useState<BillingStatus | null>(null)
+  const [defaultPlan, setDefaultPlan] = useState<BillingPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -38,10 +46,22 @@ export function BillingPage() {
         .then((r) => { if (r.token) setToken(r.token, meta) })
         .catch(() => {})
         .finally(() => {
-          getBillingStatus().then(setStatus).finally(() => setLoading(false))
+          Promise.all([getBillingStatus(), getBillingPlans()])
+            .then(([s, p]) => {
+              setStatus(s)
+              const pro = p.plans.find((plan) => plan.tier === 'Pro') ?? p.plans[0] ?? null
+              setDefaultPlan(pro)
+            })
+            .finally(() => setLoading(false))
         })
     } else {
-      getBillingStatus().then(setStatus).finally(() => setLoading(false))
+      Promise.all([getBillingStatus(), getBillingPlans()])
+        .then(([s, p]) => {
+          setStatus(s)
+          const pro = p.plans.find((plan) => plan.tier === 'Pro') ?? p.plans[0] ?? null
+          setDefaultPlan(pro)
+        })
+        .finally(() => setLoading(false))
     }
   }, [])
 
@@ -121,7 +141,9 @@ export function BillingPage() {
         <div className="actions" style={{ marginTop: '1.5rem' }}>
           {!isActive && status?.stripe_enabled && (
             <button className="btn primary" onClick={handleUpgrade} disabled={busy}>
-              {busy ? 'Loading…' : isTrialing ? 'Upgrade now — $39/mo' : 'Reactivate subscription'}
+              {busy ? 'Loading…' : isTrialing
+                ? `Upgrade now${defaultPlan ? ` — ${formatPrice(defaultPlan)}` : ''}`
+                : 'Reactivate subscription'}
             </button>
           )}
           {isActive && status?.stripe_enabled && status.has_subscription && (

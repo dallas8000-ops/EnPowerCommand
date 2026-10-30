@@ -2,6 +2,7 @@ import { apiUrl } from './apiBase'
 import { clearToken, getToken } from './auth'
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
+const HEALTH_TTL_MS = 30_000
 
 async function parseJson(res: Response) {
   const text = await res.text()
@@ -57,6 +58,8 @@ export type Health = {
   auth_required?: boolean
 }
 
+let healthCache: { data: Health; at: number } | null = null
+
 export type ConversionBucket = {
   label: string
   applied_count: number
@@ -76,8 +79,14 @@ export type WeeklyAnalytics = {
 }
 
 export async function getHealth(): Promise<Health> {
+  const now = Date.now()
+  if (healthCache && now - healthCache.at < HEALTH_TTL_MS) {
+    return healthCache.data
+  }
   const res = await fetch(apiUrl('/api/health'))
-  return parseJson(res) as Promise<Health>
+  const data = (await parseJson(res)) as Health
+  healthCache = { data, at: now }
+  return data
 }
 
 export type DashboardStage = {
@@ -98,6 +107,8 @@ export type DashboardAnalytics = {
   fill_rate: number
   jobs_total: number
   jobs_filled: number
+  candidate_count: number
+  open_job_count: number
   recent_activity: DashboardActivity[]
 }
 
@@ -737,6 +748,28 @@ export type BillingStatus = {
   trial_ends_at: string
   stripe_enabled: boolean
   has_subscription: boolean
+}
+
+export type BillingPlan = {
+  id: string
+  tier: string
+  amount: number
+  currency: string
+  interval: string
+  trialDays: number
+  features: string[]
+}
+
+export type BillingPlansResponse = {
+  plans: BillingPlan[]
+  stripe_enabled: boolean
+  default_price_id: string | null
+  app_url: string
+}
+
+export async function getBillingPlans(): Promise<BillingPlansResponse> {
+  const res = await apiFetch('/api/billing/plans')
+  return parseJson(res) as Promise<BillingPlansResponse>
 }
 
 export async function getBillingStatus(): Promise<BillingStatus> {

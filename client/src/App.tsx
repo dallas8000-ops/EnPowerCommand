@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { getHealth } from './api'
-import { clearToken, getAuthMeta, getToken } from './auth'
+import { getToken } from './auth'
 import './App.css'
+import { Navbar } from './components/Navbar'
+import { PublicLayout } from './components/PublicLayout'
 import { BillingPage } from './pages/BillingPage'
 import { CandidateEditorPage } from './pages/CandidateEditorPage'
 import { CandidatesPage } from './pages/CandidatesPage'
@@ -38,7 +40,6 @@ import { BlogEditorPage } from './pages/BlogEditorPage'
 
 function ProtectedLayout() {
   const [gate, setGate] = useState<'loading' | 'login' | 'app'>('loading')
-  const meta = getAuthMeta()
 
   useEffect(() => {
     getHealth()
@@ -52,6 +53,7 @@ function ProtectedLayout() {
   if (gate === 'loading') {
     return (
       <div className="shell">
+        <Navbar variant="public" />
         <main className="main">
           <p className="muted">Loading…</p>
         </main>
@@ -65,43 +67,8 @@ function ProtectedLayout() {
 
   return (
     <div className="shell">
-      <header className="top">
-        <NavLink to="/" className="brand">
-          RecruitCommand
-        </NavLink>
-        <nav className="nav">
-          <NavLink to="/" end>Dashboard</NavLink>
-          <NavLink to="/candidates">Candidates</NavLink>
-          <NavLink to="/job-orders">Jobs</NavLink>
-          <NavLink to="/pipeline">Pipeline</NavLink>
-          <NavLink to="/leads">Leads</NavLink>
-          <NavLink to="/profile">Profile</NavLink>
-          <NavLink to="/team">Team</NavLink>
-          <NavLink to="/interviews">Interviews</NavLink>
-          <NavLink to="/applications">Applications</NavLink>
-          <NavLink to="/ai/rankings">AI Rankings</NavLink>
-          <NavLink to="/ai/outreach">AI Outreach</NavLink>
-          <NavLink to="/email-templates">Templates</NavLink>
-          <NavLink to="/reports">Reports</NavLink>
-          <NavLink to="/webhooks">Webhooks</NavLink>
-          <NavLink to="/ai/tools">AI Tools</NavLink>
-          <NavLink to="/blog-editor">Blog</NavLink>
-          <NavLink to="/billing" title={meta.tenant_name ?? 'Billing'}>Billing</NavLink>
-          {getToken() && (
-            <button
-              type="button"
-              className="btn-link"
-              onClick={() => {
-                clearToken()
-                window.location.assign(`${window.location.origin}/login`)
-              }}
-            >
-              Sign out
-            </button>
-          )}
-        </nav>
-      </header>
-      <main className="main">
+      <Navbar variant="app" />
+      <main className="main main--app">
         <Outlet />
       </main>
     </div>
@@ -111,16 +78,18 @@ function ProtectedLayout() {
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/jobs" element={<JobBoardPage />} />
-      <Route path="/jobs/:id" element={<JobApplyPage />} />
-      <Route path="/client" element={<ClientPortalPage />} />
-      <Route path="/about" element={<PublicAboutPage />} />
-      <Route path="/blog" element={<PublicBlogPage />} />
-      <Route path="/blog/:slug" element={<PublicBlogPostPage />} />
-      <Route path="/post-job" element={<PostJobPage />} />
-      <Route path="/invite/:token" element={<AcceptInvitePage />} />
+      <Route element={<PublicLayout />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/jobs" element={<JobBoardPage />} />
+        <Route path="/jobs/:id" element={<JobApplyPage />} />
+        <Route path="/client" element={<ClientPortalPage />} />
+        <Route path="/about" element={<PublicAboutPage />} />
+        <Route path="/blog" element={<PublicBlogPage />} />
+        <Route path="/blog/:slug" element={<PublicBlogPostPage />} />
+        <Route path="/post-job" element={<PostJobPage />} />
+        <Route path="/invite/:token" element={<AcceptInvitePage />} />
+      </Route>
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/candidates" element={<CandidatesPage />} />

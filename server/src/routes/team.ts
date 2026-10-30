@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { getPool } from "../db.js";
+import { getAppUrl } from "../stripeConfig.js";
 import { hashPassword, signTenantToken } from "./auth.js";
 
 const inviteBody = z.object({
@@ -89,7 +90,7 @@ export function registerTeamRoutes(app: Express): void {
 
     const tenantRes = await pool.query(`SELECT name FROM tenants WHERE id = $1`, [tid]);
     const tenantName = tenantRes.rows[0]?.name ?? "your team";
-    const appUrl = process.env.APP_URL ?? "https://enpower-command-web.onrender.com";
+    const appUrl = getAppUrl();
     const inviteUrl = `${appUrl}/invite/${token}`;
 
     await sendInviteEmail(email, inviteUrl, tenantName);

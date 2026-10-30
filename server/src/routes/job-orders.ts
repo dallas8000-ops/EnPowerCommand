@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { getPool } from "../db.js";
+import { asyncHandler } from "../asyncHandler.js";
 
 const jobOrderBody = z.object({
   client_company: z.string().min(1),
@@ -15,9 +16,9 @@ const jobOrderBody = z.object({
 const jobOrderPatch = jobOrderBody.partial();
 
 export function registerJobOrderRoutes(app: Express): void {
-  app.get("/api/job-orders", async (req: Request, res: Response) => {
+  app.get("/api/job-orders", asyncHandler(async (req: Request, res: Response) => {
     const pool = getPool();
-    if (!pool) return res.status(503).json({ error: "Database not configured" });
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
     const r = await pool.query(
       `SELECT id, client_company, title, location, remote, salary_range, description, status,
               source, client_contact_name, client_contact_email, client_notes,
@@ -26,7 +27,7 @@ export function registerJobOrderRoutes(app: Express): void {
       [req.tenantId]
     );
     res.json({ job_orders: r.rows });
-  });
+  }));
 
   app.get("/api/job-orders/:id", async (req: Request, res: Response) => {
     const pool = getPool();

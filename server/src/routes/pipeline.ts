@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { getPool } from "../db.js";
+import { asyncHandler } from "../asyncHandler.js";
 
 const STAGES = ["sourced", "screening", "submitted", "interview", "offer", "placed", "rejected"] as const;
 
@@ -17,9 +18,9 @@ const placementPatch = z.object({
 });
 
 export function registerPipelineRoutes(app: Express): void {
-  app.get("/api/pipeline", async (req: Request, res: Response) => {
+  app.get("/api/pipeline", asyncHandler(async (req: Request, res: Response) => {
     const pool = getPool();
-    if (!pool) return res.status(503).json({ error: "Database not configured" });
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
 
     const r = await pool.query(
       `SELECT p.id, p.stage, p.notes, p.created_at, p.updated_at,
@@ -56,7 +57,7 @@ export function registerPipelineRoutes(app: Express): void {
     }));
 
     res.json({ placements, stages: STAGES });
-  });
+  }));
 
   app.get("/api/pipeline/by-job/:jobOrderId", async (req: Request, res: Response) => {
     const pool = getPool();

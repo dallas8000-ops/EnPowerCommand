@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { getPool } from "../db.js";
+import { asyncHandler } from "../asyncHandler.js";
 
 type ConversionRow = {
   bucket: string;
@@ -9,22 +10,22 @@ type ConversionRow = {
 };
 
 export function registerAnalyticsRoutes(app: Express): void {
-  app.get("/api/analytics/dashboard", async (req: Request, res: Response) => {
+  app.get("/api/analytics/dashboard", asyncHandler(async (req: Request, res: Response) => {
     const pool = getPool();
     if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
     const tid = req.tenantId ?? null;
 
-    const [stageRes, velocityRes, fillRes, recentRes] = await Promise.all([
+    const [stageRes, velocityRes, fillRes, recentRes, candidateRes, openJobsRes] = await Promise.all([
       pool.query<{ stage: string; cnt: string }>(
-        `SELECT stage, COUNT(*) AS cnt FROM pipeline_placements
+        `SELECT stage, COUNT(*) AS cnt FROM placements
          WHERE tenant_id IS NOT DISTINCT FROM $1 GROUP BY stage`, [tid]
       ),
       pool.query<{ stage: string; avg_days: string }>(
         `SELECT
            p2.stage,
            ROUND(AVG(EXTRACT(EPOCH FROM (p2.updated_at - p1.updated_at)) / 86400), 1) AS avg_days
-         FROM pipeline_placements p1
-         JOIN pipeline_placements p2
+         FROM placements p1
+         JOIN placements p2
            ON p1.candidate_id = p2.candidate_id
            AND p1.job_order_id = p2.job_order_id
            AND p2.tenant_id IS NOT DISTINCT FROM $1
@@ -47,6 +48,13 @@ export function registerAnalyticsRoutes(app: Express): void {
          WHERE ca.tenant_id IS NOT DISTINCT FROM $1
          ORDER BY ca.created_at DESC LIMIT 8`, [tid]
       ),
+      pool.query<{ cnt: string }>(
+        `SELECT COUNT(*) AS cnt FROM candidates WHERE tenant_id IS NOT DISTINCT FROM $1`, [tid]
+      ),
+      pool.query<{ cnt: string }>(
+        `SELECT COUNT(*) AS cnt FROM job_orders
+         WHERE tenant_id IS NOT DISTINCT FROM $1 AND status = 'open'`, [tid]
+      ),
     ]);
 
     const stageMap = new Map(stageRes.rows.map((r) => [r.stage, Number(r.cnt)]));
@@ -64,9 +72,11 @@ export function registerAnalyticsRoutes(app: Express): void {
       fill_rate: Number(fill?.fill_rate ?? 0),
       jobs_total: Number(fill?.total ?? 0),
       jobs_filled: Number(fill?.filled ?? 0),
+      candidate_count: Number(candidateRes.rows[0]?.cnt ?? 0),
+      open_job_count: Number(openJobsRes.rows[0]?.cnt ?? 0),
       recent_activity: recentRes.rows,
     });
-  });
+  }));
 
   app.get("/api/analytics/weekly", async (req: Request, res: Response) => {
     const pool = getPool();

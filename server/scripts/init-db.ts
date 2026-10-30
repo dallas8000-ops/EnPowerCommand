@@ -11,7 +11,7 @@ function shouldUseSsl(url: string): boolean {
     /sslmode=require/i.test(url) ||
     process.env.PGSSLMODE === "require" ||
     process.env.DB_SSL === "true" ||
-    Boolean(process.env.RENDER)
+    Boolean(process.env.RAILWAY_ENVIRONMENT)
   );
 }
 

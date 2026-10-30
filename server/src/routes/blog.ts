@@ -35,8 +35,7 @@ export function registerBlogRoutes(app: Express): void {
 
     const r = await pool.query(
       `SELECT t.name AS agency_name, t.id AS tenant_id,
-              p.contact_email, p.contact_phone, p.website_url,
-              p.bio, p.specialties, p.headshot_url, p.tagline, p.linkedin_url
+              p.bio, p.specialties, p.headshot_url, p.tagline, p.linkedin_url, p.website_url
        FROM tenants t
        LEFT JOIN tenant_profiles p ON p.tenant_id = t.id
        WHERE t.id = $1`,

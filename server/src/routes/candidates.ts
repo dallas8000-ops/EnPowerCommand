@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { getPool } from "../db.js";
+import { asyncHandler } from "../asyncHandler.js";
 
 const candidateBody = z.object({
   name: z.string().min(1),
@@ -17,16 +18,16 @@ const candidateBody = z.object({
 const candidatePatch = candidateBody.partial();
 
 export function registerCandidateRoutes(app: Express): void {
-  app.get("/api/candidates", async (req: Request, res: Response) => {
+  app.get("/api/candidates", asyncHandler(async (req: Request, res: Response) => {
     const pool = getPool();
-    if (!pool) return res.status(503).json({ error: "Database not configured" });
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
     const r = await pool.query(
       `SELECT id, name, email, phone, title, location, resume_url, skills, notes, status, created_at, updated_at
        FROM candidates WHERE tenant_id = $1 ORDER BY updated_at DESC`,
       [req.tenantId]
     );
     res.json({ candidates: r.rows });
-  });
+  }));
 
   app.get("/api/candidates/:id", async (req: Request, res: Response) => {
     const pool = getPool();

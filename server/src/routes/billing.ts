@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import Stripe from "stripe";
 import { getPool } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
+import { getAppUrl, getDefaultPriceId, listPlans } from "../stripeConfig.js";
 import { signTenantToken } from "./auth.js";
 
 function getStripe(): Stripe | null {
@@ -11,6 +12,16 @@ function getStripe(): Stripe | null {
 }
 
 export function registerBillingRoutes(app: Express): void {
+  app.get("/api/billing/plans", (_req: Request, res: Response) => {
+    const plans = listPlans();
+    res.json({
+      plans,
+      stripe_enabled: Boolean(getStripe()),
+      default_price_id: getDefaultPriceId() ?? null,
+      app_url: getAppUrl(),
+    });
+  });
+
   app.get("/api/billing/status", requireAuth, async (req: Request, res: Response) => {
     const pool = getPool();
     if (!pool) {
@@ -60,16 +71,16 @@ export function registerBillingRoutes(app: Express): void {
       return;
     }
 
-    const priceId = process.env.STRIPE_PRICE_ID?.trim();
+    const priceId = getDefaultPriceId();
     if (!priceId) {
       res.status(503).json({
         error: "Stripe price not configured",
-        hint: "Set STRIPE_PRICE_ID on the server.",
+        hint: "Run full setup in Deployment-Stripe-center (project: enpowercommand) or set STRIPE_PRICE_ID",
       });
       return;
     }
 
-    const origin = req.headers.origin ?? process.env.CORS_ORIGIN ?? "http://localhost:5173";
+    const origin = req.headers.origin ?? getAppUrl();
 
     try {
       const session = await stripe.checkout.sessions.create({
@@ -142,7 +153,7 @@ export function registerBillingRoutes(app: Express): void {
       return;
     }
 
-    const origin = req.headers.origin ?? process.env.CORS_ORIGIN ?? "http://localhost:5173";
+    const origin = req.headers.origin ?? getAppUrl();
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/billing`,

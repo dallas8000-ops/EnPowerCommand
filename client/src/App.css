@@ -26,7 +26,94 @@
 
 .nav {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem 1rem;
+}
+
+.nav--app {
+  max-width: min(72rem, 72vw);
+}
+
+.nav-more {
+  position: relative;
+}
+
+.nav-more > summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+.nav-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-more[open] > summary,
+.nav-more > summary:hover {
+  color: var(--text-h);
+}
+
+.nav-more__menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 10;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 11rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+}
+
+.nav-more__menu a {
+  padding: 0.25rem 0.35rem;
+  border-radius: 6px;
+}
+
+.nav-more__menu a:hover {
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.nav-cta {
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  background: var(--text-h);
+  color: var(--bg) !important;
+  font-weight: 500;
+}
+
+.nav-cta:hover {
+  opacity: 0.92;
+}
+
+.nav-cta.active {
+  color: var(--bg) !important;
+}
+
+.nav-tenant {
+  margin-left: 0.25rem;
+}
+
+.main--public {
+  max-width: 960px;
+}
+
+.main--app {
+  max-width: 1080px;
+}
+
+.shell .auth-page {
+  min-height: auto;
+  flex: 1;
+  align-items: flex-start;
+  padding: 1rem 0 2rem;
 }
 
 .nav a {

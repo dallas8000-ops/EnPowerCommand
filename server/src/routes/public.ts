@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { getPool } from "../db.js";
+import { getAppUrl } from "../stripeConfig.js";
 
 async function notifyNewSubmission(job: { client_company: string; title: string; client_contact_name: string; client_contact_email: string }) {
   const to = process.env.NOTIFY_EMAIL;
@@ -60,7 +61,7 @@ export function registerPublicRoutes(app: Express): void {
            FROM job_orders j JOIN tenants t ON t.id = j.tenant_id
            WHERE j.status = 'open' ORDER BY j.opened_at DESC`);
 
-    const appUrl = process.env.APP_URL ?? 'https://enpower-command-web.onrender.com';
+    const appUrl = getAppUrl();
     const jobs = r.rows as { id: string; client_company: string; title: string; location: string | null; remote: boolean; salary_range: string | null; description: string | null; opened_at: string; agency_name: string }[];
     const agencyName = jobs[0]?.agency_name ?? 'RecruitCommand';
 

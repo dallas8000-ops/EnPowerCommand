@@ -8,6 +8,7 @@
     "dev:server": "npm run dev --prefix server",
     "db:up": "docker compose up -d",
     "db:init": "npm run db:init --prefix server",
+    "sync:railway-env": "node scripts/sync-railway-env.mjs",
     "install:all": "npm install && npm install --prefix client && npm install --prefix server"
   },
   "devDependencies": {

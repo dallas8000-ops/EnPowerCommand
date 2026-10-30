@@ -9,12 +9,17 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [authRequired, setAuthRequired] = useState<boolean | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    getHealth().then((h) => {
-      if (!h.auth_required || getToken()) navigate('/', { replace: true })
-    })
+    if (getToken()) {
+      navigate('/', { replace: true })
+      return
+    }
+    getHealth()
+      .then((h) => setAuthRequired(h.auth_required ?? false))
+      .catch(() => setAuthRequired(null))
   }, [navigate])
 
   async function onSubmit(e: FormEvent) {
@@ -45,6 +50,12 @@ export function LoginPage() {
         <h1>Sign in</h1>
         {meta.tenant_name && (
           <p className="lede">Welcome back, <strong>{meta.tenant_name}</strong></p>
+        )}
+        {authRequired === false && (
+          <div className="banner">
+            Login is optional on this server. You can{' '}
+            <Link to="/">open the app</Link> without signing in.
+          </div>
         )}
         {error && <div className="banner error">{error}</div>}
         <form className="grid-form" onSubmit={onSubmit} style={{ gridTemplateColumns: '1fr' }}>

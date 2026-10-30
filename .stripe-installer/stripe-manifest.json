@@ -1,6 +1,6 @@
 {
   "createdAt": "2026-06-12T05:51:23.248681+00:00",
-  "updatedAt": "2026-06-12T05:51:23.248681+00:00",
+  "updatedAt": "2026-10-02T15:35:32.600516+00:00",
   "accountId": "acct_1TVQpaRxznXvj6jh",
   "products": [
     {
@@ -56,10 +56,14 @@
       ]
     }
   ],
-  "webhookEndpoint": null,
-  "billingPortalConfig": {
-    "id": "bpc_1ThNzzRxznXvj6jhiWTRbHN0",
+  "webhookEndpoint": {
+    "id": "we_1UM8UiRxznXvj6jhNfkexSa5",
+    "url": "https://enpowercommand-production.up.railway.app/api/billing/webhook",
     "reused": false
   },
-  "appUrl": "http://localhost:3000"
+  "billingPortalConfig": {
+    "id": "bpc_1UM2iWRxznXvj6jhwvOhIiJ9",
+    "reused": true
+  },
+  "appUrl": "https://enpowercommand-production.up.railway.app"
 }

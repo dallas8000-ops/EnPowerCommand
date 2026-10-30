@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom'
 import {
   getDashboardAnalytics,
   getHealth,
-  listCandidates,
-  listJobOrders,
   type DashboardAnalytics,
   type Health,
 } from '../api'
@@ -43,21 +41,33 @@ function BarChart({ data }: { data: { label: string; value: number; color: strin
 export function Home() {
   const meta = getAuthMeta()
   const [health, setHealth] = useState<Health | null>(null)
-  const [candidateCount, setCandidateCount] = useState(0)
-  const [openJobCount, setOpenJobCount] = useState(0)
   const [dash, setDash] = useState<DashboardAnalytics | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    getHealth().then(setHealth).catch(() => null)
-    listCandidates().then((r) => setCandidateCount(r.candidates.length)).catch(() => null)
-    listJobOrders().then((r) => setOpenJobCount(r.job_orders.filter((j) => j.status === 'open').length)).catch(() => null)
-    getDashboardAnalytics().then(setDash).catch(() => null)
+    let cancelled = false
+    Promise.all([
+      getHealth().catch(() => null),
+      getDashboardAnalytics().catch(() => null),
+    ]).then(([h, d]) => {
+      if (cancelled) return
+      if (h) setHealth(h)
+      if (d) setDash(d)
+      if (!d) setLoadError('Dashboard data is unavailable. Check that the API and database are running.')
+    })
+    return () => { cancelled = true }
   }, [])
 
-  const totalPipeline = dash?.stages.reduce((s, x) => s + ((['placed','rejected'].includes(x.stage)) ? 0 : x.count), 0) ?? 0
-  const placedCount = dash?.stages.find((s) => s.stage === 'placed')?.count ?? 0
+  const stages = dash?.stages ?? []
+  const totalPipeline = stages.reduce(
+    (s, x) => s + (['placed', 'rejected'].includes(x.stage) ? 0 : x.count),
+    0
+  )
+  const placedCount = stages.find((s) => s.stage === 'placed')?.count ?? 0
+  const candidateCount = dash?.candidate_count ?? 0
+  const openJobCount = dash?.open_job_count ?? 0
 
-  const chartData = (dash?.stages ?? [])
+  const chartData = stages
     .filter((s) => s.count > 0)
     .map((s) => ({ label: s.stage, value: s.count, color: STAGE_COLORS[s.stage] ?? '#6366f1' }))
 
@@ -65,6 +75,8 @@ export function Home() {
     <div className="page">
       <p className="eyebrow">RecruitCommand</p>
       <h1>{meta.tenant_name ? `Welcome, ${meta.tenant_name}` : 'Dashboard'}</h1>
+
+      {loadError && <div className="banner error">{loadError}</div>}
 
       {health && (
         <ul className="status-line" style={{ marginBottom: '1.5rem' }}>
@@ -79,17 +91,17 @@ export function Home() {
       <div className="stat-row">
         <div className="stat-card">
           <p className="stat-card__label">Candidates</p>
-          <p className="stat-card__value">{candidateCount}</p>
+          <p className="stat-card__value">{dash ? candidateCount : '—'}</p>
           <p className="stat-card__sub"><Link to="/candidates" className="link">Manage →</Link></p>
         </div>
         <div className="stat-card">
           <p className="stat-card__label">Open jobs</p>
-          <p className="stat-card__value">{openJobCount}</p>
+          <p className="stat-card__value">{dash ? openJobCount : '—'}</p>
           <p className="stat-card__sub"><Link to="/job-orders" className="link">Manage →</Link></p>
         </div>
         <div className="stat-card">
           <p className="stat-card__label">In pipeline</p>
-          <p className="stat-card__value">{totalPipeline}</p>
+          <p className="stat-card__value">{dash ? totalPipeline : '—'}</p>
           <p className="stat-card__sub"><Link to="/pipeline" className="link">View board →</Link></p>
         </div>
         <div className="stat-card">
@@ -120,10 +132,10 @@ export function Home() {
         {/* Velocity table */}
         <div className="form-card">
           <h2>Avg. days per stage</h2>
-          {dash && dash.stages.some((s) => s.avg_days !== null) ? (
+          {dash && stages.some((s) => s.avg_days !== null) ? (
             <table className="velocity-table">
               <tbody>
-                {dash.stages.filter((s) => s.avg_days !== null).map((s) => (
+                {stages.filter((s) => s.avg_days !== null).map((s) => (
                   <tr key={s.stage}>
                     <td><span className="pill" style={{ background: STAGE_COLORS[s.stage] + '22', color: STAGE_COLORS[s.stage] }}>{s.stage}</span></td>
                     <td className="velocity-table__days">{s.avg_days}d avg</td>
@@ -140,7 +152,7 @@ export function Home() {
       {/* Recent activity feed */}
       <div className="form-card" style={{ marginTop: '1.5rem' }}>
         <h2>Recent activity</h2>
-        {dash && dash.recent_activity.length > 0 ? (
+        {dash?.recent_activity && dash.recent_activity.length > 0 ? (
           <ul className="activity-log">
             {dash.recent_activity.map((a, i) => (
               <li key={i} className="activity-log__item">

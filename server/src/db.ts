@@ -7,7 +7,7 @@ function shouldUseSsl(url: string): boolean {
     /sslmode=require/i.test(url) ||
     process.env.PGSSLMODE === "require" ||
     process.env.DB_SSL === "true" ||
-    Boolean(process.env.RENDER)
+    Boolean(process.env.RAILWAY_ENVIRONMENT)
   );
 }
 
@@ -18,7 +18,12 @@ export function getPool(): pg.Pool | null {
     pool = new pg.Pool({
       connectionString: url,
       max: 10,
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000,
       ssl: shouldUseSsl(url) ? { rejectUnauthorized: false } : undefined,
+    });
+    pool.on("error", (err) => {
+      console.error("Postgres pool error:", err.message);
     });
   }
   return pool;

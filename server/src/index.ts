@@ -3,6 +3,8 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { asyncHandler } from "./asyncHandler.js";
+import { getPool } from "./db.js";
 import { authConfigured, requireAuth } from "./middleware/auth.js";
 import { registerActivityRoutes } from "./routes/activities.js";
 import { registerAnalyticsRoutes } from "./routes/analytics.js";
@@ -32,6 +34,7 @@ import { registerBlogRoutes } from "./routes/blog.js";
 import { registerProfileRoutes } from "./routes/profile.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerRegisterRoutes } from "./routes/register.js";
+import { getAppUrl } from "./stripeConfig.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -44,16 +47,26 @@ app.use(
   })
 );
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", asyncHandler(async (_req, res) => {
+  let dbOk = false;
+  const pool = getPool();
+  if (pool) {
+    try {
+      await pool.query("SELECT 1");
+      dbOk = true;
+    } catch {
+      dbOk = false;
+    }
+  }
   res.json({
     ok: true,
     service: "enpower-command",
-    db: Boolean(process.env.DATABASE_URL),
+    db: dbOk,
     ai: Boolean(process.env.OPENAI_API_KEY),
     stripe: Boolean(process.env.STRIPE_SECRET_KEY),
     auth_required: authConfigured(),
   });
-});
+}));
 
 app.use("/api/billing/webhook", express.raw({ type: "*/*" }));
 app.use(express.json({ limit: "2mb" }));
@@ -114,6 +127,14 @@ process.on("unhandledRejection", (reason) => {
 
 const server = app.listen(port, () => {
   console.log(`API http://localhost:${port}`);
+  const dbUrl = process.env.DATABASE_URL ?? "";
+  if (/railway\.app|rlwy\.net/i.test(dbUrl) && process.env.RAILWAY_ENVIRONMENT !== "production") {
+    console.warn(
+      "\n⚠ DATABASE_URL points to a remote Railway database. Local dev is faster with Docker Postgres:\n" +
+      "  npm run db:up && npm run db:init\n" +
+      "  Then set DATABASE_URL=postgresql://enpower:enpower@localhost:5433/enpower and DB_SSL=false in server/.env\n"
+    );
+  }
 });
 
 server.on("error", (err: NodeJS.ErrnoException) => {
