@@ -77,4 +77,4 @@ Push to `main` / `master` runs client + server `npm ci` and `npm run build` (see
 
 ## License
 
-MIT
+Proprietary. All rights reserved. This source code is published for viewing and evaluation only. No permission is granted to copy, use, modify, or distribute it. See [LICENSE](LICENSE) for the full terms. For licensing inquiries, visit https://gilliomfrontlinedigital.com.
